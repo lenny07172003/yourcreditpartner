@@ -1,0 +1,11 @@
+{
+  "crons": [
+    { "path": "/api/cron/finalize-tiers", "schedule": "1 5 1 * *" },
+    { "path": "/api/cron/promote-to-earned", "schedule": "0 8 * * *" },
+    { "path": "/api/cron/promote-to-payable", "schedule": "0 8 * * *" },
+    { "path": "/api/cron/dormancy-check", "schedule": "0 14 * * *" },
+    { "path": "/api/cron/tier-threshold-alerts", "schedule": "0 16 * * *" },
+    { "path": "/api/cron/drip-campaigns", "schedule": "0 13 * * *" },
+    { "path": "/api/cron/client-nurture-dispatcher", "schedule": "*/15 * * * *" }
+  ]
+}
