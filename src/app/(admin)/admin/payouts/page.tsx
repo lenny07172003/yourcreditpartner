@@ -1,6 +1,21 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { Banknote } from "lucide-react";
+import { toast } from "sonner";
+import { StatusBadge } from "@/components/ui/status-badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 
 interface PayoutRow {
   id: string;
@@ -14,18 +29,10 @@ interface PayoutRow {
   sent_at: string | null;
 }
 
-const STATUS_BADGE: Record<string, string> = {
-  queued: "bg-yellow-100 text-yellow-700",
-  sent: "bg-blue-100 text-blue-700",
-  confirmed: "bg-success/10 text-success",
-  failed: "bg-danger/10 text-danger",
-};
-
 export default function AdminPayoutsPage() {
   const [payouts, setPayouts] = useState<PayoutRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
 
   async function loadPayouts() {
     const res = await fetch("/api/admin/payouts");
@@ -42,7 +49,6 @@ export default function AdminPayoutsPage() {
 
   async function createPayoutRun() {
     setCreating(true);
-    setMsg(null);
     const res = await fetch("/api/admin/payouts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -50,20 +56,23 @@ export default function AdminPayoutsPage() {
     });
     const data = await res.json();
     if (res.ok) {
-      setMsg(`Created ${data.created} payout(s)`);
+      toast.success(`Created ${data.created} payout(s)`);
       loadPayouts();
     } else {
-      setMsg(data.error ?? "Failed to create payout run");
+      toast.error(data.error ?? "Failed to create payout run");
     }
     setCreating(false);
   }
 
-  async function markSent(payoutId: string) {
-    const res = await fetch(`/api/admin/payouts/${payoutId}/mark-paid`, {
+  async function markSent(payout: PayoutRow) {
+    const res = await fetch(`/api/admin/payouts/${payout.id}/mark-paid`, {
       method: "POST",
     });
     if (res.ok) {
+      toast.success(`Payout to ${payout.partner_name} marked as sent`);
       loadPayouts();
+    } else {
+      toast.error("Failed to mark payout as sent");
     }
   }
 
@@ -84,20 +93,14 @@ export default function AdminPayoutsPage() {
             Create payout runs from payable commissions and mark as sent
           </p>
         </div>
-        <button
+        <Button
           onClick={createPayoutRun}
           disabled={creating}
-          className="rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-500 disabled:opacity-50"
         >
+          <Banknote className="size-4" />
           {creating ? "Creating..." : "Create Payout Run"}
-        </button>
+        </Button>
       </div>
-
-      {msg && (
-        <div className="rounded-lg bg-brand-50 px-4 py-3 text-sm text-brand-700">
-          {msg}
-        </div>
-      )}
 
       <div className="overflow-hidden rounded-xl border border-line bg-surface shadow-sm">
         <table className="w-full text-left">
@@ -115,8 +118,16 @@ export default function AdminPayoutsPage() {
           <tbody>
             {payouts.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-12 text-center text-sm text-ink-muted">
-                  No payouts yet. Click &ldquo;Create Payout Run&rdquo; to batch payable commissions.
+                <td colSpan={7} className="px-4 py-12 text-center">
+                  <div className="flex flex-col items-center">
+                    <div className="mb-3 rounded-xl bg-surface-raised p-3">
+                      <Banknote className="size-8 text-ink-muted" />
+                    </div>
+                    <p className="text-sm font-semibold text-ink">No payouts yet</p>
+                    <p className="mt-1 text-xs text-ink-muted">
+                      Click &ldquo;Create Payout Run&rdquo; to batch payable commissions
+                    </p>
+                  </div>
                 </td>
               </tr>
             ) : (
@@ -135,11 +146,7 @@ export default function AdminPayoutsPage() {
                     {p.zelle_handle || "—"}
                   </td>
                   <td className="px-4 py-3">
-                    <span
-                      className={`rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize ${STATUS_BADGE[p.status] ?? "bg-surface-raised text-ink-muted"}`}
-                    >
-                      {p.status}
-                    </span>
+                    <StatusBadge status={p.status} />
                   </td>
                   <td className="px-4 py-3 text-xs text-ink-muted">
                     {new Date(p.created_at).toLocaleDateString("en-US", {
@@ -149,12 +156,27 @@ export default function AdminPayoutsPage() {
                   </td>
                   <td className="px-4 py-3">
                     {p.status === "queued" && (
-                      <button
-                        onClick={() => markSent(p.id)}
-                        className="text-xs font-medium text-brand-600 hover:underline"
-                      >
-                        Mark Sent
-                      </button>
+                      <AlertDialog>
+                        <AlertDialogTrigger className="rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-ink-muted transition-colors hover:border-brand-400 hover:text-brand-600">
+                            Mark Sent
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Mark payout as sent?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will mark the ${(p.total_cents / 100).toFixed(2)} payout to{" "}
+                              <strong>{p.partner_name}</strong> as sent via Zelle
+                              {p.zelle_handle ? ` to ${p.zelle_handle}` : ""}.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => markSent(p)}>
+                              Yes, Mark as Sent
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     )}
                   </td>
                 </tr>

@@ -1,7 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Pencil, Check, X, ExternalLink } from "lucide-react";
+import { Pencil, ExternalLink, Video } from "lucide-react";
+import { toast } from "sonner";
+import { StatusBadge } from "@/components/ui/status-badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import type { FastStartVideo } from "@/types/database";
 
 const TRACK_LABELS: Record<string, string> = {
@@ -22,141 +34,13 @@ function TrackBadge({ track }: { track: string }) {
   );
 }
 
-function VideoRow({
-  video,
-  onSave,
-}: {
-  video: FastStartVideo;
-  onSave: (id: string, updates: Partial<FastStartVideo>) => Promise<void>;
-}) {
-  const [editing, setEditing] = useState(false);
-  const [url, setUrl] = useState(video.video_url ?? "");
-  const [duration, setDuration] = useState(
-    video.duration_seconds?.toString() ?? ""
-  );
-  const [saving, setSaving] = useState(false);
-
-  async function handleSave() {
-    setSaving(true);
-    await onSave(video.id, {
-      video_url: url.trim() || null,
-      duration_seconds: duration ? parseInt(duration) : null,
-    });
-    setSaving(false);
-    setEditing(false);
-  }
-
-  function handleCancel() {
-    setUrl(video.video_url ?? "");
-    setDuration(video.duration_seconds?.toString() ?? "");
-    setEditing(false);
-  }
-
-  const hasUrl = !!video.video_url;
-
-  return (
-    <tr className="border-t border-line">
-      <td className="px-4 py-3 text-sm text-ink-muted">{video.sort_order}</td>
-
-      <td className="px-4 py-3">
-        <p className="text-sm font-medium text-ink">{video.title}</p>
-        <div className="mt-1 flex flex-wrap gap-1">
-          {video.tracks.map((t) => (
-            <TrackBadge key={t} track={t} />
-          ))}
-          {video.required && (
-            <span className="rounded-full bg-danger/10 px-2 py-0.5 text-[10px] font-medium text-danger">
-              Required
-            </span>
-          )}
-        </div>
-      </td>
-
-      <td className="px-4 py-3">
-        <span
-          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
-            hasUrl ? "bg-success/10 text-success" : "bg-warning/10 text-warning"
-          }`}
-        >
-          <span
-            className={`size-1.5 rounded-full ${hasUrl ? "bg-success" : "bg-warning"}`}
-          />
-          {hasUrl ? "Live" : "Pending"}
-        </span>
-      </td>
-
-      <td className="px-4 py-3">
-        {editing ? (
-          <div className="space-y-2">
-            <input
-              type="url"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://vimeo.com/... or YouTube URL"
-              className="w-full rounded-lg border border-line px-3 py-1.5 text-xs text-ink outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
-            />
-            <input
-              type="number"
-              value={duration}
-              onChange={(e) => setDuration(e.target.value)}
-              placeholder="Duration (seconds)"
-              className="w-36 rounded-lg border border-line px-3 py-1.5 text-xs text-ink outline-none focus:border-brand-500"
-            />
-            <div className="flex gap-2">
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="flex items-center gap-1 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
-              >
-                <Check className="size-3" />
-                {saving ? "Saving…" : "Save"}
-              </button>
-              <button
-                onClick={handleCancel}
-                className="flex items-center gap-1 rounded-lg border border-line px-3 py-1.5 text-xs text-ink-muted hover:text-ink"
-              >
-                <X className="size-3" />
-                Cancel
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="flex items-center gap-3">
-            {video.video_url ? (
-              <a
-                href={video.video_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1 text-xs text-brand-600 hover:underline"
-              >
-                <ExternalLink className="size-3" />
-                View
-              </a>
-            ) : (
-              <span className="text-xs text-ink-muted">No URL</span>
-            )}
-            {video.duration_seconds && (
-              <span className="text-xs text-ink-muted">
-                {Math.floor(video.duration_seconds / 60)}m {video.duration_seconds % 60}s
-              </span>
-            )}
-            <button
-              onClick={() => setEditing(true)}
-              className="ml-auto flex items-center gap-1 rounded-lg border border-line px-2.5 py-1 text-xs text-ink-muted hover:border-brand-400 hover:text-brand-600"
-            >
-              <Pencil className="size-3" />
-              Edit
-            </button>
-          </div>
-        )}
-      </td>
-    </tr>
-  );
-}
-
 export default function AdminVideosPage() {
   const [videos, setVideos] = useState<FastStartVideo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingVideo, setEditingVideo] = useState<FastStartVideo | null>(null);
+  const [editUrl, setEditUrl] = useState("");
+  const [editDuration, setEditDuration] = useState("");
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetch("/api/admin/videos")
@@ -167,68 +51,186 @@ export default function AdminVideosPage() {
       });
   }, []);
 
-  async function handleSave(id: string, updates: Partial<FastStartVideo>) {
+  function openEdit(video: FastStartVideo) {
+    setEditingVideo(video);
+    setEditUrl(video.video_url ?? "");
+    setEditDuration(video.duration_seconds?.toString() ?? "");
+  }
+
+  async function handleSave() {
+    if (!editingVideo) return;
+    setSaving(true);
+
     const res = await fetch("/api/admin/videos", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, ...updates }),
+      body: JSON.stringify({
+        id: editingVideo.id,
+        video_url: editUrl.trim() || null,
+        duration_seconds: editDuration ? parseInt(editDuration) : null,
+      }),
     });
+
     if (res.ok) {
       const { video } = await res.json();
       setVideos((prev) =>
-        prev.map((v) => (v.id === id ? { ...v, ...video } : v))
+        prev.map((v) => (v.id === editingVideo.id ? { ...v, ...video } : v))
       );
+      toast.success(`Updated "${editingVideo.title}"`);
+      setEditingVideo(null);
+    } else {
+      toast.error("Failed to update video");
     }
+    setSaving(false);
   }
 
   const liveCount = videos.filter((v) => v.video_url).length;
 
   return (
-    <div className="min-h-screen bg-surface-soft p-6">
-      <div className="mx-auto max-w-5xl">
-        <div className="mb-6 flex items-end justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-ink">Fast Start Videos</h1>
-            <p className="mt-1 text-sm text-ink-muted">
-              Set video URLs for each training video. Partners see a placeholder
-              until a URL is added.
-            </p>
-          </div>
-          {!loading && (
-            <span className="text-sm text-ink-muted">
-              {liveCount}/{videos.length} live
-            </span>
-          )}
+    <div className="mx-auto max-w-5xl space-y-6">
+      <div className="flex items-end justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-ink">Fast Start Videos</h1>
+          <p className="mt-1 text-sm text-ink-muted">
+            Set video URLs for each training video. Partners see a placeholder
+            until a URL is added.
+          </p>
         </div>
-
-        <div className="overflow-hidden rounded-xl border border-line bg-surface shadow-sm">
-          {loading ? (
-            <div className="p-10 text-center text-sm text-ink-muted">
-              Loading…
-            </div>
-          ) : (
-            <table className="w-full text-left">
-              <thead>
-                <tr className="border-b border-line bg-surface-soft text-xs font-semibold uppercase tracking-wide text-ink-muted">
-                  <th className="px-4 py-3">#</th>
-                  <th className="px-4 py-3">Title / Tracks</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">URL / Duration</th>
-                </tr>
-              </thead>
-              <tbody>
-                {videos.map((v) => (
-                  <VideoRow key={v.id} video={v} onSave={handleSave} />
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-
-        <p className="mt-3 text-xs text-ink-muted">
-          Supports YouTube, Vimeo, Wistia, and direct .mp4 URLs.
-        </p>
+        {!loading && (
+          <span className="text-sm text-ink-muted">
+            {liveCount}/{videos.length} live
+          </span>
+        )}
       </div>
+
+      <div className="overflow-hidden rounded-xl border border-line bg-surface shadow-sm">
+        {loading ? (
+          <div className="p-10 text-center text-sm text-ink-muted">
+            Loading...
+          </div>
+        ) : (
+          <table className="w-full text-left">
+            <thead>
+              <tr className="border-b border-line bg-surface-soft text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                <th className="px-4 py-3">#</th>
+                <th className="px-4 py-3">Title / Tracks</th>
+                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">Duration</th>
+                <th className="px-4 py-3" />
+              </tr>
+            </thead>
+            <tbody>
+              {videos.map((v) => {
+                const hasUrl = !!v.video_url;
+                return (
+                  <tr key={v.id} className="border-t border-line hover:bg-surface-soft">
+                    <td className="px-4 py-3 text-sm text-ink-muted">{v.sort_order}</td>
+                    <td className="px-4 py-3">
+                      <p className="text-sm font-medium text-ink">{v.title}</p>
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {v.tracks.map((t) => (
+                          <TrackBadge key={t} track={t} />
+                        ))}
+                        {v.required && (
+                          <span className="rounded-full bg-danger/10 px-2 py-0.5 text-[10px] font-medium text-danger">
+                            Required
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <StatusBadge status={hasUrl ? "live" : "draft"} label={hasUrl ? "Live" : "Pending"} />
+                    </td>
+                    <td className="px-4 py-3 text-xs text-ink-muted">
+                      {v.duration_seconds
+                        ? `${Math.floor(v.duration_seconds / 60)}m ${v.duration_seconds % 60}s`
+                        : "—"}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        {v.video_url && (
+                          <a
+                            href={v.video_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-xs text-brand-600 hover:underline"
+                          >
+                            <ExternalLink className="size-3" />
+                            View
+                          </a>
+                        )}
+                        <button
+                          onClick={() => openEdit(v)}
+                          className="flex items-center gap-1 rounded-lg border border-line px-2.5 py-1 text-xs text-ink-muted transition-colors hover:border-brand-400 hover:text-brand-600"
+                        >
+                          <Pencil className="size-3" />
+                          Edit
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      <p className="text-xs text-ink-muted">
+        Supports YouTube, Vimeo, Wistia, and direct .mp4 URLs.
+      </p>
+
+      {/* Edit Dialog */}
+      <Dialog open={!!editingVideo} onOpenChange={(open) => !open && setEditingVideo(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Video</DialogTitle>
+            <DialogDescription>
+              {editingVideo?.title}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-ink-muted">
+                Video URL
+              </label>
+              <Input
+                type="url"
+                value={editUrl}
+                onChange={(e) => setEditUrl(e.target.value)}
+                placeholder="https://vimeo.com/... or YouTube URL"
+              />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-ink-muted">
+                Duration (seconds)
+              </label>
+              <Input
+                type="number"
+                value={editDuration}
+                onChange={(e) => setEditDuration(e.target.value)}
+                placeholder="e.g. 180"
+                className="max-w-[200px]"
+              />
+              {editDuration && (
+                <p className="mt-1 text-xs text-ink-muted">
+                  = {Math.floor(parseInt(editDuration) / 60)}m {parseInt(editDuration) % 60}s
+                </p>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingVideo(null)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

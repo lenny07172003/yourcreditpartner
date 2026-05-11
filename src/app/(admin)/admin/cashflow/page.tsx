@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { CashflowChart } from "@/components/admin/CashflowChart";
 
 export default async function AdminCashflowPage() {
   const admin = createAdminClient();
@@ -46,6 +47,16 @@ export default async function AdminCashflowPage() {
           <p className="mt-1 text-2xl font-bold text-yellow-600">${(totalOutstanding / 100).toFixed(2)}</p>
         </div>
       </div>
+
+      <CashflowChart
+        data={months.map(([month, totals]) => ({
+          month,
+          pending: totals.pending,
+          earned: totals.earned,
+          payable: totals.payable,
+          paid: totals.paid,
+        }))}
+      />
 
       <div className="overflow-hidden rounded-xl border border-line bg-surface shadow-sm">
         <table className="w-full text-left">

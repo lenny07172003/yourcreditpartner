@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getPartnerByAuthId, getPartnerCommissions } from "@/lib/supabase/queries";
 import { CommissionsTable } from "./commissions-table";
+import { CommissionChart } from "@/components/dashboard/CommissionChart";
 
 export default async function CommissionsPage() {
   const supabase = await createClient();
@@ -50,6 +51,13 @@ export default async function CommissionsPage() {
           </div>
         ))}
       </div>
+
+      <CommissionChart
+        pending={totals.pending}
+        earned={totals.earned}
+        payable={totals.payable}
+        paid={totals.paid}
+      />
 
       {/* Lifecycle explanation */}
       <div className="rounded-xl border border-line bg-surface-soft p-4">
