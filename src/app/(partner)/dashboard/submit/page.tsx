@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
+import { CheckCircle } from "lucide-react";
+import { toast } from "sonner";
 
 export default function SubmitReferralPage() {
   const router = useRouter();
@@ -38,11 +40,14 @@ export default function SubmitReferralPage() {
 
     if (!res.ok) {
       const data = await res.json();
-      setError(data.error ?? "Failed to submit referral.");
+      const msg = data.error ?? "Failed to submit referral.";
+      setError(msg);
+      toast.error(msg);
       setLoading(false);
       return;
     }
 
+    toast.success("Referral submitted successfully!");
     setSuccess(true);
     setLoading(false);
   }
@@ -51,8 +56,8 @@ export default function SubmitReferralPage() {
     return (
       <div className="mx-auto max-w-lg text-center">
         <div className="rounded-xl border border-success/30 bg-success/5 p-8">
-          <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-success/10 text-2xl">
-            ✓
+          <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-success/10">
+            <CheckCircle className="size-6 text-emerald-600" />
           </div>
           <h2 className="text-lg font-bold text-ink">Referral Submitted!</h2>
           <p className="mt-2 text-sm text-ink-muted">

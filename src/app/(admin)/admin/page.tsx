@@ -1,29 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import Link from "next/link";
-
-function StatCard({
-  label,
-  value,
-  sub,
-  href,
-}: {
-  label: string;
-  value: string;
-  sub?: string;
-  href?: string;
-}) {
-  const card = (
-    <div className="rounded-xl border border-line bg-surface p-5 transition-colors hover:border-brand-300">
-      <p className="text-xs font-medium uppercase tracking-wide text-ink-muted">
-        {label}
-      </p>
-      <p className="mt-1 text-2xl font-bold text-ink">{value}</p>
-      {sub && <p className="mt-0.5 text-xs text-ink-muted">{sub}</p>}
-    </div>
-  );
-
-  return href ? <Link href={href}>{card}</Link> : card;
-}
+import { Users, TrendingUp, ClipboardList, Banknote } from "lucide-react";
+import { StatCard } from "@/components/dashboard/StatCard";
 
 export default async function AdminDashboardPage() {
   const admin = createAdminClient();
@@ -95,28 +73,35 @@ export default async function AdminDashboardPage() {
 
       {/* Top stats */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          label="Active Partners"
-          value={activePartners.toString()}
-          sub={`${totalPartners} total`}
-          href="/admin/partners"
-        />
+        <Link href="/admin/partners">
+          <StatCard
+            label="Active Partners"
+            value={activePartners.toString()}
+            sub={`${totalPartners} total`}
+            icon={Users}
+          />
+        </Link>
         <StatCard
           label="Closes MTD"
           value={monthlyCloses.toString()}
           sub={closeMonth}
+          icon={TrendingUp}
         />
-        <StatCard
-          label="Total Referrals"
-          value={totalReferrals.toString()}
-          href="/admin/referrals"
-        />
-        <StatCard
-          label="Pending Payouts"
-          value={`$${(pendingPayoutTotal / 100).toFixed(2)}`}
-          sub={`${pendingPayouts.length} queued`}
-          href="/admin/payouts"
-        />
+        <Link href="/admin/referrals">
+          <StatCard
+            label="Total Referrals"
+            value={totalReferrals.toString()}
+            icon={ClipboardList}
+          />
+        </Link>
+        <Link href="/admin/payouts">
+          <StatCard
+            label="Pending Payouts"
+            value={`$${(pendingPayoutTotal / 100).toFixed(2)}`}
+            sub={`${pendingPayouts.length} queued`}
+            icon={Banknote}
+          />
+        </Link>
       </div>
 
       {/* Commission breakdown */}
@@ -154,8 +139,11 @@ export default async function AdminDashboardPage() {
       <div className="grid gap-4 sm:grid-cols-3">
         <Link
           href="/admin/partners"
-          className="group rounded-xl border border-line bg-surface p-5 transition-colors hover:border-brand-300"
+          className="group rounded-xl border border-line bg-surface p-5 transition-all duration-300 hover:border-brand-300 hover:bg-brand-50 hover:shadow-md"
         >
+          <div className="mb-2 inline-flex rounded-lg bg-brand-50 p-2 group-hover:bg-brand-100">
+            <Users className="size-5 text-brand-600" />
+          </div>
           <p className="text-sm font-semibold text-ink group-hover:text-brand-700">
             Manage Partners
           </p>
@@ -165,8 +153,11 @@ export default async function AdminDashboardPage() {
         </Link>
         <Link
           href="/admin/referrals"
-          className="group rounded-xl border border-line bg-surface p-5 transition-colors hover:border-brand-300"
+          className="group rounded-xl border border-line bg-surface p-5 transition-all duration-300 hover:border-brand-300 hover:bg-brand-50 hover:shadow-md"
         >
+          <div className="mb-2 inline-flex rounded-lg bg-brand-50 p-2 group-hover:bg-brand-100">
+            <ClipboardList className="size-5 text-brand-600" />
+          </div>
           <p className="text-sm font-semibold text-ink group-hover:text-brand-700">
             All Referrals
           </p>
@@ -176,8 +167,11 @@ export default async function AdminDashboardPage() {
         </Link>
         <Link
           href="/admin/payouts"
-          className="group rounded-xl border border-line bg-surface p-5 transition-colors hover:border-brand-300"
+          className="group rounded-xl border border-line bg-surface p-5 transition-all duration-300 hover:border-brand-300 hover:bg-brand-50 hover:shadow-md"
         >
+          <div className="mb-2 inline-flex rounded-lg bg-brand-50 p-2 group-hover:bg-brand-100">
+            <Banknote className="size-5 text-brand-600" />
+          </div>
           <p className="text-sm font-semibold text-ink group-hover:text-brand-700">
             Process Payouts
           </p>

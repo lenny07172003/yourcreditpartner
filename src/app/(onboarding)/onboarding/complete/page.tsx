@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getPartnerByAuthId } from "@/lib/supabase/queries";
+import { CheckCircle, LinkIcon, ClipboardList, DollarSign } from "lucide-react";
 
 export default async function OnboardingCompletePage() {
   const supabase = await createClient();
@@ -35,8 +36,8 @@ export default async function OnboardingCompletePage() {
     <div className="flex min-h-screen items-center justify-center bg-brand-950 px-4">
       <div className="w-full max-w-md text-center">
         {/* Celebration */}
-        <div className="mx-auto mb-6 flex size-20 items-center justify-center rounded-full bg-brand-900 text-4xl">
-          🎉
+        <div className="mx-auto mb-6 flex size-20 items-center justify-center rounded-full bg-gradient-to-br from-brand-600 to-accent-500">
+          <CheckCircle className="size-10 text-white" />
         </div>
 
         <h1 className="text-2xl font-bold text-white">
@@ -51,7 +52,9 @@ export default async function OnboardingCompletePage() {
         {/* Key info */}
         <div className="mt-8 space-y-3 rounded-2xl border border-brand-800 bg-brand-900 p-6 text-left">
           <div className="flex items-start gap-3">
-            <span className="text-lg">🔗</span>
+            <div className="rounded-lg bg-brand-800 p-2">
+              <LinkIcon className="size-4 text-brand-400" />
+            </div>
             <div>
               <p className="text-sm font-semibold text-white">Your referral link</p>
               <p className="text-xs text-brand-400">
@@ -60,7 +63,9 @@ export default async function OnboardingCompletePage() {
             </div>
           </div>
           <div className="flex items-start gap-3">
-            <span className="text-lg">📋</span>
+            <div className="rounded-lg bg-brand-800 p-2">
+              <ClipboardList className="size-4 text-brand-400" />
+            </div>
             <div>
               <p className="text-sm font-semibold text-white">Submit a referral</p>
               <p className="text-xs text-brand-400">
@@ -69,7 +74,9 @@ export default async function OnboardingCompletePage() {
             </div>
           </div>
           <div className="flex items-start gap-3">
-            <span className="text-lg">💵</span>
+            <div className="rounded-lg bg-brand-800 p-2">
+              <DollarSign className="size-4 text-brand-400" />
+            </div>
             <div>
               <p className="text-sm font-semibold text-white">Get paid monthly</p>
               <p className="text-xs text-brand-400">

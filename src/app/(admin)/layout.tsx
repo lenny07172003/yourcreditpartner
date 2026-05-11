@@ -3,15 +3,27 @@ import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
+import {
+  LayoutDashboard,
+  Users,
+  ClipboardList,
+  Banknote,
+  Target,
+  Video,
+  Settings,
+  TrendingUp,
+} from "lucide-react";
+import { SidebarNav, MobileNav, type NavItem } from "@/components/dashboard/SidebarNav";
 
-const NAV_ITEMS = [
-  { href: "/admin", label: "Dashboard", icon: "📊" },
-  { href: "/admin/partners", label: "Partners", icon: "👥" },
-  { href: "/admin/referrals", label: "Referrals", icon: "📋" },
-  { href: "/admin/payouts", label: "Payouts", icon: "💸" },
-  { href: "/admin/sales-reps", label: "Sales Reps", icon: "🎯" },
-  { href: "/admin/videos", label: "Videos", icon: "🎬" },
-  { href: "/admin/settings/tiers", label: "Tier Settings", icon: "⚙️" },
+const NAV_ITEMS: NavItem[] = [
+  { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/admin/partners", label: "Partners", icon: Users },
+  { href: "/admin/referrals", label: "Referrals", icon: ClipboardList },
+  { href: "/admin/payouts", label: "Payouts", icon: Banknote },
+  { href: "/admin/sales-reps", label: "Sales Reps", icon: Target },
+  { href: "/admin/cashflow", label: "Cashflow", icon: TrendingUp },
+  { href: "/admin/videos", label: "Videos", icon: Video },
+  { href: "/admin/settings/tiers", label: "Tier Settings", icon: Settings },
 ];
 
 export default async function AdminLayout({
@@ -46,18 +58,7 @@ export default async function AdminLayout({
           </Link>
         </div>
 
-        <nav className="flex-1 space-y-1 px-3 py-4">
-          {NAV_ITEMS.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-ink-muted transition-colors hover:bg-surface-raised hover:text-ink"
-            >
-              <span className="text-base">{item.icon}</span>
-              {item.label}
-            </Link>
-          ))}
-        </nav>
+        <SidebarNav items={NAV_ITEMS} />
 
         <div className="border-t border-line p-4">
           <div className="rounded-lg bg-surface-raised p-3">
@@ -84,17 +85,7 @@ export default async function AdminLayout({
           </Link>
         </header>
 
-        <nav className="flex gap-1 overflow-x-auto border-b border-line bg-surface px-2 py-2 lg:hidden">
-          {NAV_ITEMS.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="flex-none rounded-lg px-3 py-1.5 text-xs font-medium text-ink-muted transition-colors hover:bg-surface-raised hover:text-ink"
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
+        <MobileNav items={NAV_ITEMS} />
 
         <main className="flex-1 p-4 lg:p-8">{children}</main>
       </div>

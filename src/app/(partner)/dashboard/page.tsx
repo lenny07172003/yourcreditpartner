@@ -3,27 +3,9 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { loadTiers, getTierForCloses, getCloseCountForMonth } from "@/lib/commissions/tier-engine";
+import { Users, TrendingUp, DollarSign, Clock, UserPlus, LinkIcon } from "lucide-react";
+import { StatCard } from "@/components/dashboard/StatCard";
 import type { CommissionTier } from "@/types/database";
-
-function StatCard({
-  label,
-  value,
-  sub,
-}: {
-  label: string;
-  value: string;
-  sub?: string;
-}) {
-  return (
-    <div className="rounded-xl border border-line bg-surface p-5">
-      <p className="text-xs font-medium uppercase tracking-wide text-ink-muted">
-        {label}
-      </p>
-      <p className="mt-1 text-2xl font-bold text-ink">{value}</p>
-      {sub && <p className="mt-0.5 text-xs text-ink-muted">{sub}</p>}
-    </div>
-  );
-}
 
 function TierCard({
   tierName,
@@ -223,21 +205,25 @@ export default async function DashboardPage() {
           label="Total Referrals"
           value={referrals.length.toString()}
           sub="all time"
+          icon={Users}
         />
         <StatCard
           label="Closes This Month"
           value={closeCount.toString()}
           sub={closeMonth}
+          icon={TrendingUp}
         />
         <StatCard
           label="Total Earned"
           value={`$${(totalEarnings / 100).toFixed(2)}`}
           sub="all time"
+          icon={DollarSign}
         />
         <StatCard
           label="Pending"
           value={`$${(pendingEarnings / 100).toFixed(2)}`}
           sub="awaiting 30-day window"
+          icon={Clock}
         />
       </div>
 
@@ -248,8 +234,11 @@ export default async function DashboardPage() {
       <div className="grid gap-4 sm:grid-cols-2">
         <Link
           href="/dashboard/submit"
-          className="group rounded-xl border border-line bg-surface p-5 transition-colors hover:border-brand-300 hover:bg-brand-50"
+          className="group rounded-xl border border-line bg-surface p-5 transition-all duration-300 hover:border-brand-300 hover:bg-brand-50 hover:shadow-md"
         >
+          <div className="mb-2 inline-flex rounded-lg bg-brand-50 p-2 group-hover:bg-brand-100">
+            <UserPlus className="size-5 text-brand-600" />
+          </div>
           <p className="text-sm font-semibold text-ink group-hover:text-brand-700">
             Submit a Referral
           </p>
@@ -260,8 +249,11 @@ export default async function DashboardPage() {
 
         <Link
           href="/dashboard/resources"
-          className="group rounded-xl border border-line bg-surface p-5 transition-colors hover:border-brand-300 hover:bg-brand-50"
+          className="group rounded-xl border border-line bg-surface p-5 transition-all duration-300 hover:border-brand-300 hover:bg-brand-50 hover:shadow-md"
         >
+          <div className="mb-2 inline-flex rounded-lg bg-brand-50 p-2 group-hover:bg-brand-100">
+            <LinkIcon className="size-5 text-brand-600" />
+          </div>
           <p className="text-sm font-semibold text-ink group-hover:text-brand-700">
             Your Referral Link
           </p>

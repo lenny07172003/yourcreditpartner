@@ -3,14 +3,23 @@ import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import { getPartnerByAuthId } from "@/lib/supabase/queries";
 import { redirect } from "next/navigation";
+import {
+  LayoutDashboard,
+  Users,
+  UserPlus,
+  DollarSign,
+  BookOpen,
+  Settings,
+} from "lucide-react";
+import { SidebarNav, MobileNav, type NavItem } from "@/components/dashboard/SidebarNav";
 
-const NAV_ITEMS = [
-  { href: "/dashboard", label: "Overview", icon: "📊" },
-  { href: "/dashboard/referrals", label: "Referrals", icon: "👥" },
-  { href: "/dashboard/submit", label: "Submit Referral", icon: "➕" },
-  { href: "/dashboard/commissions", label: "Commissions", icon: "💰" },
-  { href: "/dashboard/resources", label: "Resources", icon: "📚" },
-  { href: "/dashboard/settings", label: "Settings", icon: "⚙️" },
+const NAV_ITEMS: NavItem[] = [
+  { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
+  { href: "/dashboard/referrals", label: "Referrals", icon: Users },
+  { href: "/dashboard/submit", label: "Submit Referral", icon: UserPlus },
+  { href: "/dashboard/commissions", label: "Commissions", icon: DollarSign },
+  { href: "/dashboard/resources", label: "Resources", icon: BookOpen },
+  { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ];
 
 export default async function PartnerLayout({
@@ -38,18 +47,7 @@ export default async function PartnerLayout({
           </Link>
         </div>
 
-        <nav className="flex-1 space-y-1 px-3 py-4">
-          {NAV_ITEMS.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-ink-muted transition-colors hover:bg-surface-raised hover:text-ink"
-            >
-              <span className="text-base">{item.icon}</span>
-              {item.label}
-            </Link>
-          ))}
-        </nav>
+        <SidebarNav items={NAV_ITEMS} />
 
         <div className="border-t border-line p-4">
           <div className="rounded-lg bg-surface-raised p-3">
@@ -72,17 +70,7 @@ export default async function PartnerLayout({
         </header>
 
         {/* Mobile nav */}
-        <nav className="flex gap-1 overflow-x-auto border-b border-line bg-surface px-2 py-2 lg:hidden">
-          {NAV_ITEMS.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="flex-none rounded-lg px-3 py-1.5 text-xs font-medium text-ink-muted transition-colors hover:bg-surface-raised hover:text-ink"
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
+        <MobileNav items={NAV_ITEMS} />
 
         {/* Page content */}
         <main className="flex-1 p-4 lg:p-8">{children}</main>

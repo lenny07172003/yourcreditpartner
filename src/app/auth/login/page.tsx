@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
 import Link from "next/link";
+import { Mail } from "lucide-react";
 
 type Mode = "password" | "magic";
 
@@ -78,8 +79,8 @@ export default function LoginPage() {
           {magicSent ? (
             /* Magic link sent confirmation */
             <div className="text-center">
-              <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-brand-800 text-2xl">
-                ✉️
+              <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-brand-800">
+                <Mail className="size-6 text-brand-400" />
               </div>
               <h2 className="text-base font-semibold text-white">
                 Check your email

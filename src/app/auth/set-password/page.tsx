@@ -4,6 +4,7 @@ import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
 import Link from "next/link";
+import { PasswordStrength } from "@/components/ui/password-strength";
 
 function SetPasswordForm() {
   const router = useRouter();
@@ -74,6 +75,7 @@ function SetPasswordForm() {
                 placeholder="At least 8 characters"
                 className="w-full rounded-lg border border-brand-700 bg-brand-800 px-3 py-2.5 text-sm text-white outline-none placeholder:text-brand-600 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
               />
+              <PasswordStrength password={password} />
               {tooShort && (
                 <p className="mt-1 text-xs text-danger">
                   Must be at least 8 characters

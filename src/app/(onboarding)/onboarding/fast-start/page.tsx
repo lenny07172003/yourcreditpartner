@@ -8,6 +8,7 @@ import {
 } from "@/lib/supabase/queries";
 import { ProgressBar } from "@/components/onboarding/ProgressBar";
 import { VideoCard } from "@/components/onboarding/VideoCard";
+import { CheckCircle } from "lucide-react";
 
 export default async function FastStartPage() {
   const supabase = await createClient();
@@ -76,7 +77,7 @@ export default async function FastStartPage() {
         {completedRequired.length === requiredVideos.length && requiredVideos.length > 0 && (
           <div className="mt-8 rounded-xl border border-success/30 bg-success/5 p-6 text-center">
             <p className="text-base font-semibold text-ink">
-              🎉 You&rsquo;ve completed Fast Start!
+              <CheckCircle className="mr-1.5 inline size-5 text-emerald-500" /> You&rsquo;ve completed Fast Start!
             </p>
             <p className="mt-1 text-sm text-ink-muted">
               You&rsquo;re ready to start referring clients.

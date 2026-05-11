@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { createBrowserClient } from "@supabase/ssr";
+import { PasswordStrength } from "@/components/ui/password-strength";
+import { toast } from "sonner";
 
 interface PartnerProfile {
   first_name: string;
@@ -62,9 +64,11 @@ export default function SettingsPage() {
     });
 
     if (res.ok) {
+      toast.success("Profile updated");
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } else {
+      toast.error("Failed to save changes");
       setError("Failed to save changes.");
     }
     setSaving(false);
@@ -80,8 +84,10 @@ export default function SettingsPage() {
     const { error } = await supabase.auth.updateUser({ password: newPassword });
 
     if (error) {
+      toast.error(error.message);
       setPasswordMsg(error.message);
     } else {
+      toast.success("Password updated");
       setPasswordMsg("Password updated successfully.");
       setNewPassword("");
       setConfirmPassword("");
@@ -205,6 +211,7 @@ export default function SettingsPage() {
             placeholder="At least 8 characters"
             className="w-full rounded-lg border border-line bg-surface px-3 py-2.5 text-sm text-ink outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
           />
+          <PasswordStrength password={newPassword} />
         </div>
 
         <div>
