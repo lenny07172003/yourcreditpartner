@@ -23,9 +23,9 @@ export default async function ReferralsPage() {
     submitted: referrals.filter((r: any) => r.stage === "submitted").length,
     booked: referrals.filter((r: any) => r.stage === "booked").length,
     consulted: referrals.filter((r: any) => r.stage === "consulted").length,
-    closed: referrals.filter((r: any) =>
-      ["closed_won", "active_service", "net_revenue_realized"].includes(r.stage)
-    ).length,
+    closed: referrals.filter((r: any) => r.stage === "closed_won").length,
+    active_service: referrals.filter((r: any) => r.stage === "active_service").length,
+    paid: referrals.filter((r: any) => r.stage === "net_revenue_realized").length,
     refunded: referrals.filter((r: any) => r.stage === "refunded").length,
   };
 
