@@ -1,0 +1,66 @@
+import { createHmac, timingSafeEqual } from "crypto";
+import { NextRequest, NextResponse } from "next/server";
+
+/**
+ * Verifies the HMAC-SHA256 signature GHL sends on webhook requests.
+ * GHL signs the raw body with the shared secret and sends it in:
+ *   x-ghl-signature  (header name may vary — update if GHL uses a different header)
+ *
+ * Usage at the top of every GHL webhook route:
+ *   const { deny, body } = await verifyGhlSignature(req);
+ *   if (deny) return deny;
+ *   // use `body` as the parsed JSON payload
+ */
+export async function verifyGhlSignature(
+  req: NextRequest
+): Promise<{ deny: NextResponse; body: null } | { deny: null; body: Record<string, unknown> }> {
+  const secret = process.env.GHL_WEBHOOK_SECRET;
+
+  if (!secret) {
+    console.error("[ghl-webhook] GHL_WEBHOOK_SECRET is not set");
+    return {
+      deny: NextResponse.json({ error: "Server misconfiguration" }, { status: 500 }),
+      body: null,
+    };
+  }
+
+  const rawBody = await req.text();
+  const signature = req.headers.get("x-ghl-signature") ?? req.headers.get("x-webhook-signature");
+
+  if (signature) {
+    const expected = createHmac("sha256", secret).update(rawBody).digest("hex");
+    const expectedBuf = Buffer.from(expected, "utf8");
+    const receivedBuf = Buffer.from(signature, "utf8");
+
+    const signaturesMatch =
+      expectedBuf.length === receivedBuf.length &&
+      timingSafeEqual(expectedBuf, receivedBuf);
+
+    if (!signaturesMatch) {
+      return {
+        deny: NextResponse.json({ error: "Invalid signature" }, { status: 403 }),
+        body: null,
+      };
+    }
+  } else {
+    // If GHL doesn't send a signature header, skip verification in dev only
+    if (process.env.NODE_ENV === "production") {
+      return {
+        deny: NextResponse.json({ error: "Missing signature" }, { status: 403 }),
+        body: null,
+      };
+    }
+  }
+
+  let body: Record<string, unknown>;
+  try {
+    body = JSON.parse(rawBody);
+  } catch {
+    return {
+      deny: NextResponse.json({ error: "Invalid JSON body" }, { status: 400 }),
+      body: null,
+    };
+  }
+
+  return { deny: null, body };
+}

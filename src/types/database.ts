@@ -68,6 +68,7 @@ export interface Partner {
   agreement_user_agent: string | null;
   agreement_version: string;
   agreement_pdf_url: string | null;
+  agreement_signature_name: string | null;
   zelle_handle: string | null;
   w9_url: string | null;
   commission_rate_override: number | null;
@@ -75,9 +76,31 @@ export interface Partner {
   last_submission_at: string | null;
   fast_start_completed_at: string | null;
   fast_start_skipped_at: string | null;
+  referred_by_partner_id: string | null;
+  welcome_drip_step: number;
+  last_nudge_sent_at: string | null;
+  last_tip_sent_at: string | null;
+  last_tip_index: number;
+  last_digest_month: string | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
+}
+
+export interface PartnerReferralCommission {
+  id: string;
+  source_commission_id: string;
+  referring_partner_id: string;
+  earning_partner_id: string;
+  override_rate: number;
+  amount_cents: number;
+  state: CommissionState;
+  earned_at: string | null;
+  payable_at: string | null;
+  paid_at: string | null;
+  payout_id: string | null;
+  voided_reason: string | null;
+  created_at: string;
 }
 
 export interface FastStartVideo {

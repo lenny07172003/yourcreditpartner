@@ -1,2 +1,8 @@
 import { NextResponse } from "next/server";
-export async function GET() { return NextResponse.json({ status: "ok" }); }
+import { requireAdmin } from "@/lib/supabase/requireAdmin";
+
+export async function GET() {
+  const deny = await requireAdmin();
+  if (deny) return deny;
+  return NextResponse.json({ status: "ok" });
+}
