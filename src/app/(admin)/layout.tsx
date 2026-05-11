@@ -3,28 +3,7 @@ import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
-import {
-  LayoutDashboard,
-  Users,
-  ClipboardList,
-  Banknote,
-  Target,
-  Video,
-  Settings,
-  TrendingUp,
-} from "lucide-react";
-import { SidebarNav, MobileNav, type NavItem } from "@/components/dashboard/SidebarNav";
-
-const NAV_ITEMS: NavItem[] = [
-  { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/admin/partners", label: "Partners", icon: Users },
-  { href: "/admin/referrals", label: "Referrals", icon: ClipboardList },
-  { href: "/admin/payouts", label: "Payouts", icon: Banknote },
-  { href: "/admin/sales-reps", label: "Sales Reps", icon: Target },
-  { href: "/admin/cashflow", label: "Cashflow", icon: TrendingUp },
-  { href: "/admin/videos", label: "Videos", icon: Video },
-  { href: "/admin/settings/tiers", label: "Tier Settings", icon: Settings },
-];
+import { SidebarNav, MobileNav } from "@/components/dashboard/SidebarNav";
 
 export default async function AdminLayout({
   children,
@@ -58,7 +37,7 @@ export default async function AdminLayout({
           </Link>
         </div>
 
-        <SidebarNav items={NAV_ITEMS} />
+        <SidebarNav variant="admin" />
 
         <div className="border-t border-line p-4">
           <div className="rounded-lg bg-surface-raised p-3">
@@ -85,7 +64,7 @@ export default async function AdminLayout({
           </Link>
         </header>
 
-        <MobileNav items={NAV_ITEMS} />
+        <MobileNav variant="admin" />
 
         <main className="flex-1 p-4 lg:p-8">{children}</main>
       </div>

@@ -3,24 +3,7 @@ import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import { getPartnerByAuthId } from "@/lib/supabase/queries";
 import { redirect } from "next/navigation";
-import {
-  LayoutDashboard,
-  Users,
-  UserPlus,
-  DollarSign,
-  BookOpen,
-  Settings,
-} from "lucide-react";
-import { SidebarNav, MobileNav, type NavItem } from "@/components/dashboard/SidebarNav";
-
-const NAV_ITEMS: NavItem[] = [
-  { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
-  { href: "/dashboard/referrals", label: "Referrals", icon: Users },
-  { href: "/dashboard/submit", label: "Submit Referral", icon: UserPlus },
-  { href: "/dashboard/commissions", label: "Commissions", icon: DollarSign },
-  { href: "/dashboard/resources", label: "Resources", icon: BookOpen },
-  { href: "/dashboard/settings", label: "Settings", icon: Settings },
-];
+import { SidebarNav, MobileNav } from "@/components/dashboard/SidebarNav";
 
 export default async function PartnerLayout({
   children,
@@ -47,7 +30,7 @@ export default async function PartnerLayout({
           </Link>
         </div>
 
-        <SidebarNav items={NAV_ITEMS} />
+        <SidebarNav variant="partner" />
 
         <div className="border-t border-line p-4">
           <div className="rounded-lg bg-surface-raised p-3">
@@ -70,7 +53,7 @@ export default async function PartnerLayout({
         </header>
 
         {/* Mobile nav */}
-        <MobileNav items={NAV_ITEMS} />
+        <MobileNav variant="partner" />
 
         {/* Page content */}
         <main className="flex-1 p-4 lg:p-8">{children}</main>

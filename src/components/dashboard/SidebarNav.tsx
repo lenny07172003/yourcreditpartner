@@ -3,16 +3,50 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import {
+  LayoutDashboard,
+  Users,
+  UserPlus,
+  DollarSign,
+  BookOpen,
+  Settings,
+  ClipboardList,
+  Banknote,
+  Target,
+  TrendingUp,
+  Video,
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
-export interface NavItem {
+interface NavItem {
   href: string;
   label: string;
   icon: LucideIcon;
 }
 
-export function SidebarNav({ items }: { items: NavItem[] }) {
+const PARTNER_NAV: NavItem[] = [
+  { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
+  { href: "/dashboard/referrals", label: "Referrals", icon: Users },
+  { href: "/dashboard/submit", label: "Submit Referral", icon: UserPlus },
+  { href: "/dashboard/commissions", label: "Commissions", icon: DollarSign },
+  { href: "/dashboard/resources", label: "Resources", icon: BookOpen },
+  { href: "/dashboard/settings", label: "Settings", icon: Settings },
+];
+
+const ADMIN_NAV: NavItem[] = [
+  { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/admin/partners", label: "Partners", icon: Users },
+  { href: "/admin/referrals", label: "Referrals", icon: ClipboardList },
+  { href: "/admin/payouts", label: "Payouts", icon: Banknote },
+  { href: "/admin/sales-reps", label: "Sales Reps", icon: Target },
+  { href: "/admin/cashflow", label: "Cashflow", icon: TrendingUp },
+  { href: "/admin/videos", label: "Videos", icon: Video },
+  { href: "/admin/settings/tiers", label: "Tier Settings", icon: Settings },
+];
+
+export function SidebarNav({ variant }: { variant: "partner" | "admin" }) {
   const pathname = usePathname();
+  const items = variant === "admin" ? ADMIN_NAV : PARTNER_NAV;
 
   return (
     <nav className="flex-1 space-y-1 px-3 py-4">
@@ -44,8 +78,9 @@ export function SidebarNav({ items }: { items: NavItem[] }) {
   );
 }
 
-export function MobileNav({ items }: { items: NavItem[] }) {
+export function MobileNav({ variant }: { variant: "partner" | "admin" }) {
   const pathname = usePathname();
+  const items = variant === "admin" ? ADMIN_NAV : PARTNER_NAV;
 
   return (
     <nav className="flex gap-1 overflow-x-auto border-b border-line bg-surface px-2 py-2 lg:hidden">
