@@ -4,7 +4,7 @@ import Link from "next/link";
 import { type ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "@/components/ui/data-table";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { Users } from "lucide-react";
+import { Users, Calendar } from "lucide-react";
 
 interface Referral {
   id: string;
@@ -15,6 +15,9 @@ interface Referral {
   created_at: string;
   booked_at: string | null;
   closed_won_at: string | null;
+  appointment_at: string | null;
+  appointment_end_at: string | null;
+  appointment_status: string | null;
 }
 
 const columns: ColumnDef<Referral>[] = [
@@ -34,6 +37,47 @@ const columns: ColumnDef<Referral>[] = [
     accessorKey: "stage",
     header: "Status",
     cell: ({ row }) => <StatusBadge status={row.original.stage} />,
+  },
+  {
+    accessorKey: "appointment_at",
+    header: "Appointment",
+    cell: ({ row }) => {
+      const { appointment_at, appointment_status } = row.original;
+      if (!appointment_at) return <span className="text-xs text-ink-muted">—</span>;
+
+      const formatted = new Date(appointment_at).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      });
+
+      if (appointment_status === "cancelled") {
+        return (
+          <div>
+            <p className="text-sm text-red-600 line-through">{formatted}</p>
+            <p className="text-xs font-medium text-red-600">Cancelled</p>
+          </div>
+        );
+      }
+
+      if (appointment_status === "rescheduled") {
+        return (
+          <div>
+            <p className="text-sm text-ink">{formatted}</p>
+            <p className="text-xs font-medium text-amber-600">Rescheduled</p>
+          </div>
+        );
+      }
+
+      // Scheduled
+      return (
+        <div className="flex items-center gap-1.5">
+          <Calendar className="size-3.5 text-blue-500" />
+          <p className="text-sm text-ink">{formatted}</p>
+        </div>
+      );
+    },
   },
   {
     accessorKey: "created_at",

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getPartnerByAuthId, getPartnerReferrals } from "@/lib/supabase/queries";
 import { ReferralsTable } from "./referrals-table";
+import { ReferralPipeline } from "./referral-pipeline";
 
 export default async function ReferralsPage() {
   const supabase = await createClient();
@@ -16,6 +17,17 @@ export default async function ReferralsPage() {
   if (!partner) redirect("/auth/login");
 
   const referrals = await getPartnerReferrals(supabase, partner.id);
+
+  // Pipeline counts
+  const pipeline = {
+    submitted: referrals.filter((r: any) => r.stage === "submitted").length,
+    booked: referrals.filter((r: any) => r.stage === "booked").length,
+    consulted: referrals.filter((r: any) => r.stage === "consulted").length,
+    closed: referrals.filter((r: any) =>
+      ["closed_won", "active_service", "net_revenue_realized"].includes(r.stage)
+    ).length,
+    refunded: referrals.filter((r: any) => r.stage === "refunded").length,
+  };
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
@@ -33,6 +45,8 @@ export default async function ReferralsPage() {
           + Submit Referral
         </Link>
       </div>
+
+      <ReferralPipeline {...pipeline} total={referrals.length} />
 
       <ReferralsTable data={referrals} />
     </div>

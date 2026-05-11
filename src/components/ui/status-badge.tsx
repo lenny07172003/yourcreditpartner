@@ -68,6 +68,38 @@ const STATUS_CONFIG: Record<
     text: "text-red-700",
   },
 
+  // Appointment statuses
+  scheduled: {
+    label: "Scheduled",
+    dot: "bg-blue-500",
+    bg: "bg-blue-50",
+    text: "text-blue-700",
+  },
+  rescheduled: {
+    label: "Rescheduled",
+    dot: "bg-amber-500",
+    bg: "bg-amber-50",
+    text: "text-amber-700",
+  },
+  cancelled: {
+    label: "Cancelled",
+    dot: "bg-red-500",
+    bg: "bg-red-50",
+    text: "text-red-700",
+  },
+  completed: {
+    label: "Completed",
+    dot: "bg-emerald-500",
+    bg: "bg-emerald-50",
+    text: "text-emerald-700",
+  },
+  no_show: {
+    label: "No Show",
+    dot: "bg-red-500",
+    bg: "bg-red-50",
+    text: "text-red-700",
+  },
+
   // Commission states
   pending: {
     label: "Pending",

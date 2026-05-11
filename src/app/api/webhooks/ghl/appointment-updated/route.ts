@@ -5,10 +5,7 @@ import { getReferralByGhlContactId, logPartnerEvent } from "@/lib/supabase/queri
 import { extractAppointmentPayload } from "@/lib/ghl/extract-appointment";
 
 /**
- * GHL Webhook: appointment confirmed (booked)
- *
- * Updates referral stage to 'booked', sets booked_at timestamp,
- * and advances nurture stage to 'booked_to_consulted'.
+ * GHL Webhook: appointment updated (rescheduled or cancelled via update)
  */
 export async function POST(req: NextRequest) {
   const { deny, body } = await verifyGhlSignature(req);
@@ -18,50 +15,49 @@ export async function POST(req: NextRequest) {
   const contactId = appt.contactId;
 
   if (!contactId) {
-    console.warn("[ghl/booked] No contactId in payload");
+    console.warn("[ghl/appointment-updated] No contactId in payload");
     return NextResponse.json({ error: "Missing contactId" }, { status: 400 });
   }
 
   const admin = createAdminClient();
-
-  // Find referral by GHL contact ID
   const referral = await getReferralByGhlContactId(admin, contactId);
   if (!referral) {
-    console.warn(`[ghl/booked] No referral found for contact ${contactId}`);
+    console.warn(`[ghl/appointment-updated] No referral for contact ${contactId}`);
     return NextResponse.json({ received: true, matched: false });
   }
 
-  const now = new Date().toISOString();
+  const isCancelled = appt.status === "cancelled";
+  const newStatus = isCancelled ? "cancelled" : "rescheduled";
 
-  // Update referral stage + appointment details
-  await admin
-    .from("referrals")
-    .update({
-      stage: "booked",
-      booked_at: now,
-      nurture_stage: "booked_to_consulted",
-      appointment_id: appt.appointmentId,
-      appointment_at: appt.startTime,
-      appointment_end_at: appt.endTime,
-      appointment_status: "scheduled",
-      appointment_calendar_id: appt.calendarId,
-    })
-    .eq("id", referral.id);
+  const updateData: Record<string, unknown> = {
+    appointment_status: newStatus,
+  };
 
-  // Log event
+  if (!isCancelled) {
+    updateData.appointment_at = appt.startTime;
+    updateData.appointment_end_at = appt.endTime;
+    if (appt.appointmentId) updateData.appointment_id = appt.appointmentId;
+    if (appt.calendarId) updateData.appointment_calendar_id = appt.calendarId;
+  }
+
+  await admin.from("referrals").update(updateData).eq("id", referral.id);
+
   await logPartnerEvent(admin, {
     partner_id: referral.partner_id,
     actor: "system",
-    event_type: "referral_booked",
+    event_type: isCancelled
+      ? "referral_appointment_cancelled"
+      : "referral_appointment_rescheduled",
     payload: {
       referral_id: referral.id,
       ghl_contact_id: contactId,
-      client_name: `${referral.client_first_name} ${referral.client_last_name}`,
       appointment_id: appt.appointmentId,
-      appointment_at: appt.startTime,
+      new_start_time: appt.startTime,
+      previous_start_time: referral.appointment_at,
+      ghl_status: appt.status,
     },
   });
 
-  console.log(`[ghl/booked] Referral ${referral.id} marked as booked`);
+  console.log(`[ghl/appointment-updated] Referral ${referral.id} appointment ${newStatus}`);
   return NextResponse.json({ received: true, matched: true, referralId: referral.id });
 }

@@ -24,6 +24,8 @@ export type TierMechanic = "retroactive" | "marginal";
 export type SubmissionPath = "partner_filled" | "client_filled";
 export type SalesRepStatus = "active" | "paused" | "terminated";
 
+export type AppointmentStatus = "scheduled" | "rescheduled" | "cancelled" | "completed" | "no_show";
+
 export type NurtureStatus = "active" | "paused" | "completed" | "opted_out";
 export type NurtureStage =
   | "submitted_to_booked"
@@ -169,6 +171,11 @@ export interface Referral {
   nurture_last_sent_at: string | null;
   nurture_opted_out_at: string | null;
   consult_no_show: boolean;
+  appointment_id: string | null;
+  appointment_at: string | null;
+  appointment_end_at: string | null;
+  appointment_status: AppointmentStatus | null;
+  appointment_calendar_id: string | null;
   created_at: string;
   updated_at: string;
 }
