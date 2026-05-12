@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyGhlSignature } from "@/lib/ghl/verifySignature";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getReferralByGhlContactId, logPartnerEvent } from "@/lib/supabase/queries";
+import { updateOpportunityStage } from "@/lib/ghl/client";
 
 /**
  * GHL Webhook: consultation completed
@@ -50,6 +51,16 @@ export async function POST(req: NextRequest) {
       client_name: `${referral.client_first_name} ${referral.client_last_name}`,
     },
   });
+
+  // Move opportunity to Consulted stage
+  const consultedStageId = process.env.GHL_STAGE_CONSULTED;
+  if (referral.ghl_opportunity_id && consultedStageId) {
+    try {
+      await updateOpportunityStage(referral.ghl_opportunity_id, consultedStageId);
+    } catch (err) {
+      console.error("[ghl/consulted] Failed to move opportunity:", err);
+    }
+  }
 
   console.log(`[ghl/consulted] Referral ${referral.id} marked as consulted`);
   return NextResponse.json({ received: true, matched: true, referralId: referral.id });

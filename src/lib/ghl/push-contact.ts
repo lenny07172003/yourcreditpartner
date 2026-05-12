@@ -4,6 +4,7 @@ import {
   findContactByEmail,
   addContactTags,
   getBookingUrl,
+  createOpportunity,
 } from "@/lib/ghl/client";
 
 /**
@@ -82,13 +83,36 @@ export async function pushReferralToGhl(
     }
   }
 
-  // 3. Save ghl_contact_id back to the referral
+  // 3. Create opportunity in the YCP Partner Referrals pipeline
+  let ghlOpportunityId: string | null = null;
+  const pipelineId = process.env.GHL_PIPELINE_ID;
+  const newLeadStageId = process.env.GHL_STAGE_NEW_LEAD;
+
+  if (pipelineId && newLeadStageId) {
+    try {
+      const opp = await createOpportunity({
+        pipelineId,
+        pipelineStageId: newLeadStageId,
+        contactId: ghlContactId,
+        name: `${data.clientFirstName} ${data.clientLastName} — ref:${data.partnerSlug}`,
+      });
+      ghlOpportunityId = opp.id;
+    } catch (err) {
+      console.error("[ghl] createOpportunity failed:", err);
+      // Don't block referral if pipeline creation fails
+    }
+  }
+
+  // 4. Save ghl_contact_id and opportunity_id back to the referral
   await supabase
     .from("referrals")
-    .update({ ghl_contact_id: ghlContactId })
+    .update({
+      ghl_contact_id: ghlContactId,
+      ghl_opportunity_id: ghlOpportunityId,
+    })
     .eq("id", referralId);
 
-  // 4. Return contact ID + booking URL
+  // 5. Return contact ID + booking URL
   const bookingUrl = getBookingUrl();
   return { ghlContactId, bookingUrl };
 }

@@ -3,6 +3,7 @@ import { verifyGhlSignature } from "@/lib/ghl/verifySignature";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getReferralByGhlContactId, logPartnerEvent } from "@/lib/supabase/queries";
 import { extractAppointmentPayload } from "@/lib/ghl/extract-appointment";
+import { updateOpportunityStage } from "@/lib/ghl/client";
 
 /**
  * GHL Webhook: appointment confirmed (booked)
@@ -61,6 +62,16 @@ export async function POST(req: NextRequest) {
       appointment_at: appt.startTime,
     },
   });
+
+  // Move opportunity to Booked stage in GHL pipeline
+  const bookedStageId = process.env.GHL_STAGE_BOOKED;
+  if (referral.ghl_opportunity_id && bookedStageId) {
+    try {
+      await updateOpportunityStage(referral.ghl_opportunity_id, bookedStageId);
+    } catch (err) {
+      console.error("[ghl/booked] Failed to move opportunity:", err);
+    }
+  }
 
   console.log(`[ghl/booked] Referral ${referral.id} marked as booked`);
   return NextResponse.json({ received: true, matched: true, referralId: referral.id });

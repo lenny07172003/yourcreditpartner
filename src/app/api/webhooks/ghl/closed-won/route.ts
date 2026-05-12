@@ -8,6 +8,7 @@ import {
 } from "@/lib/supabase/queries";
 import { calculateFullCommission } from "@/lib/commissions/calculate";
 import { getPartnerTierForMonth } from "@/lib/commissions/tier-engine";
+import { updateOpportunityStage } from "@/lib/ghl/client";
 
 /**
  * GHL Webhook: deal closed / won
@@ -166,6 +167,16 @@ export async function POST(req: NextRequest) {
   console.log(
     `[ghl/closed-won] Referral ${referral.id} closed. Commission: $${(result.commission_amount_cents / 100).toFixed(2)} at ${(result.commission_rate * 100).toFixed(0)}%`
   );
+
+  // Move opportunity to Closed Won stage
+  const closedStageId = process.env.GHL_STAGE_CLOSED_WON;
+  if (referral.ghl_opportunity_id && closedStageId) {
+    try {
+      await updateOpportunityStage(referral.ghl_opportunity_id, closedStageId);
+    } catch (err) {
+      console.error("[ghl/closed-won] Failed to move opportunity:", err);
+    }
+  }
 
   return NextResponse.json({
     received: true,

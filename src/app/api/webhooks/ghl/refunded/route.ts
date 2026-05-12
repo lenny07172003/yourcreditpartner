@@ -3,6 +3,7 @@ import { verifyGhlSignature } from "@/lib/ghl/verifySignature";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getReferralByGhlContactId, logPartnerEvent } from "@/lib/supabase/queries";
 import { transitionCommission } from "@/lib/commissions/state-machine";
+import { updateOpportunityStage } from "@/lib/ghl/client";
 import { recalcMonthCommissions } from "@/lib/commissions/calculate";
 import { getPartnerTierForMonth } from "@/lib/commissions/tier-engine";
 import type { CommissionState } from "@/types/database";
@@ -107,6 +108,16 @@ export async function POST(req: NextRequest) {
       voided_commission_id: commission?.id ?? null,
     },
   });
+
+  // Move opportunity to Lost stage
+  const lostStageId = process.env.GHL_STAGE_LOST;
+  if (referral.ghl_opportunity_id && lostStageId) {
+    try {
+      await updateOpportunityStage(referral.ghl_opportunity_id, lostStageId);
+    } catch (err) {
+      console.error("[ghl/refunded] Failed to move opportunity:", err);
+    }
+  }
 
   console.log(`[ghl/refunded] Referral ${referral.id} refunded, commission voided`);
   return NextResponse.json({ received: true, matched: true, referralId: referral.id });

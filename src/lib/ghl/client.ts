@@ -189,3 +189,41 @@ export async function createOpportunity(
   const json = await res.json();
   return json.opportunity as GhlOpportunity;
 }
+
+/**
+ * Move an opportunity to a different pipeline stage.
+ */
+export async function updateOpportunityStage(
+  opportunityId: string,
+  pipelineStageId: string
+): Promise<void> {
+  const res = await fetch(`${BASE_URL}/opportunities/${opportunityId}`, {
+    method: "PUT",
+    headers: getHeaders(),
+    body: JSON.stringify({
+      pipelineStageId,
+    }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    console.error(`[ghl] updateOpportunityStage failed (${res.status}):`, text);
+    throw new Error(`GHL updateOpportunityStage failed: ${res.status}`);
+  }
+}
+
+/**
+ * Get the pipeline stage ID for a referral stage.
+ */
+export function getPipelineStageId(referralStage: string): string | null {
+  const map: Record<string, string | undefined> = {
+    submitted: process.env.GHL_STAGE_NEW_LEAD,
+    booked: process.env.GHL_STAGE_BOOKED,
+    consulted: process.env.GHL_STAGE_CONSULTED,
+    closed_won: process.env.GHL_STAGE_CLOSED_WON,
+    active_service: process.env.GHL_STAGE_IN_SERVICE,
+    net_revenue_realized: process.env.GHL_STAGE_IN_SERVICE,
+    refunded: process.env.GHL_STAGE_LOST,
+  };
+  return map[referralStage] ?? null;
+}
