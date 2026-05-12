@@ -157,6 +157,7 @@ export interface GhlOpportunityInput {
   pipelineStageId: string;
   contactId: string;
   name: string;
+  status?: "open" | "won" | "lost" | "abandoned";
   monetaryValue?: number;
 }
 
@@ -176,6 +177,7 @@ export async function createOpportunity(
     headers: getHeaders(),
     body: JSON.stringify({
       locationId: locationId(),
+      status: "open",
       ...input,
     }),
   });
