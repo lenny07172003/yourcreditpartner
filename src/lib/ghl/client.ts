@@ -74,6 +74,21 @@ export async function createContact(input: GhlContactInput): Promise<GhlContact>
   if (!res.ok) {
     const text = await res.text();
     console.error(`[ghl] createContact failed (${res.status}):`, text);
+
+    // Handle duplicate contact — GHL returns the existing contactId in meta
+    if (res.status === 400) {
+      try {
+        const errBody = JSON.parse(text);
+        if (errBody.meta?.contactId) {
+          const dupErr = new Error(`GHL createContact failed: 400`) as any;
+          dupErr.duplicateContactId = errBody.meta.contactId;
+          throw dupErr;
+        }
+      } catch (e: any) {
+        if (e.duplicateContactId) throw e;
+      }
+    }
+
     throw new Error(`GHL createContact failed: ${res.status}`);
   }
 

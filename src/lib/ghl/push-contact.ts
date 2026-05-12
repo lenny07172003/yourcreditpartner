@@ -61,15 +61,25 @@ export async function pushReferralToGhl(
     await addContactTags(ghlContactId, tags);
   } else {
     // Create new contact with tags
-    const contact = await createContact({
-      firstName: data.clientFirstName,
-      lastName: data.clientLastName,
-      email: data.clientEmail,
-      phone: data.clientPhone,
-      tags,
-      source: `YCP - ${data.partnerFirstName} ${data.partnerLastName}`,
-    });
-    ghlContactId = contact.id;
+    try {
+      const contact = await createContact({
+        firstName: data.clientFirstName,
+        lastName: data.clientLastName,
+        email: data.clientEmail,
+        phone: data.clientPhone,
+        tags,
+        source: `YCP - ${data.partnerFirstName} ${data.partnerLastName}`,
+      });
+      ghlContactId = contact.id;
+    } catch (err: any) {
+      // GHL rejects duplicates by email or phone — use the existing contact ID from the error
+      if (err.duplicateContactId) {
+        ghlContactId = err.duplicateContactId;
+        await addContactTags(ghlContactId, tags);
+      } else {
+        throw err;
+      }
+    }
   }
 
   // 3. Save ghl_contact_id back to the referral
@@ -126,16 +136,23 @@ export async function pushPartnerToGhl(
       return existing.id;
     }
 
-    const contact = await createContact({
-      firstName: data.firstName,
-      lastName: data.lastName,
-      email: data.email,
-      phone: data.phone,
-      tags,
-      source: "YCP Partner Signup",
-    });
-
-    return contact.id;
+    try {
+      const contact = await createContact({
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        phone: data.phone,
+        tags,
+        source: "YCP Partner Signup",
+      });
+      return contact.id;
+    } catch (createErr: any) {
+      if (createErr.duplicateContactId) {
+        await addContactTags(createErr.duplicateContactId, tags);
+        return createErr.duplicateContactId;
+      }
+      throw createErr;
+    }
   } catch (err) {
     // Don't block partner signup if GHL is down
     console.error("[ghl] pushPartnerToGhl failed:", err);
