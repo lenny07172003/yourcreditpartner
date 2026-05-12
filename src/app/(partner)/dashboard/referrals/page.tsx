@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -5,7 +6,21 @@ import { getPartnerByAuthId, getPartnerReferrals } from "@/lib/supabase/queries"
 import { ReferralsTable } from "./referrals-table";
 import { ReferralPipeline } from "./referral-pipeline";
 
-export default async function ReferralsPage() {
+// Map pipeline keys to actual DB stage values
+const STAGE_MAP: Record<string, string[]> = {
+  submitted: ["submitted"],
+  booked: ["booked"],
+  consulted: ["consulted"],
+  closed: ["closed_won"],
+  active_service: ["active_service"],
+  paid: ["net_revenue_realized"],
+};
+
+export default async function ReferralsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ stage?: string }>;
+}) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -29,13 +44,34 @@ export default async function ReferralsPage() {
     refunded: referrals.filter((r: any) => r.stage === "refunded").length,
   };
 
+  // Filter referrals by selected stage
+  const params = await searchParams;
+  const stageFilter = params.stage;
+  const stageValues = stageFilter ? STAGE_MAP[stageFilter] : null;
+  const filteredReferrals = stageValues
+    ? referrals.filter((r: any) => stageValues.includes(r.stage))
+    : referrals;
+
+  const filterLabel = stageFilter
+    ? {
+        submitted: "Submitted",
+        booked: "Booked",
+        consulted: "Consulted",
+        closed: "Closed",
+        active_service: "In Service",
+        paid: "Paid",
+      }[stageFilter]
+    : null;
+
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <div className="flex items-end justify-between">
         <div>
           <h1 className="text-xl font-bold text-ink">Your Referrals</h1>
           <p className="mt-1 text-sm text-ink-muted">
-            {referrals.length} referral{referrals.length !== 1 ? "s" : ""} submitted
+            {filterLabel
+              ? `${filteredReferrals.length} ${filterLabel.toLowerCase()} referral${filteredReferrals.length !== 1 ? "s" : ""}`
+              : `${referrals.length} referral${referrals.length !== 1 ? "s" : ""} submitted`}
           </p>
         </div>
         <Link
@@ -46,9 +82,11 @@ export default async function ReferralsPage() {
         </Link>
       </div>
 
-      <ReferralPipeline {...pipeline} total={referrals.length} />
+      <Suspense>
+        <ReferralPipeline {...pipeline} total={referrals.length} />
+      </Suspense>
 
-      <ReferralsTable data={referrals} />
+      <ReferralsTable data={filteredReferrals} />
     </div>
   );
 }
