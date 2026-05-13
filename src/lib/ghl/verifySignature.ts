@@ -34,6 +34,15 @@ export async function verifyGhlSignature(
     console.log(`[ghl-webhook] ${req.nextUrl.pathname} headers:`, Object.fromEntries(req.headers.entries()));
   }
 
+  // Auth methods, in order of preference:
+  //   1. HMAC signature in x-ghl-signature header (preferred if GHL ever supports it)
+  //   2. Shared secret in x-webhook-token header (configured in GHL Workflow custom headers)
+  //   3. Shared secret as ?token= query param (fallback)
+  //   4. No auth in dev only
+  const tokenHeader = req.headers.get("x-webhook-token") ?? req.headers.get("x-ycp-secret");
+  const tokenQuery = req.nextUrl.searchParams.get("token");
+  const providedToken = tokenHeader ?? tokenQuery;
+
   if (signature) {
     const expected = createHmac("sha256", secret).update(rawBody).digest("hex");
     const expectedBuf = Buffer.from(expected, "utf8");
@@ -49,11 +58,25 @@ export async function verifyGhlSignature(
         body: null,
       };
     }
+  } else if (providedToken) {
+    // Compare shared secret using timing-safe equality
+    const expectedBuf = Buffer.from(secret, "utf8");
+    const receivedBuf = Buffer.from(providedToken, "utf8");
+    const tokenMatches =
+      expectedBuf.length === receivedBuf.length &&
+      timingSafeEqual(expectedBuf, receivedBuf);
+
+    if (!tokenMatches) {
+      return {
+        deny: NextResponse.json({ error: "Invalid token" }, { status: 403 }),
+        body: null,
+      };
+    }
   } else {
-    // If GHL doesn't send a signature header, skip verification in dev only
+    // No auth provided — only allowed in development
     if (process.env.NODE_ENV === "production") {
       return {
-        deny: NextResponse.json({ error: "Missing signature" }, { status: 403 }),
+        deny: NextResponse.json({ error: "Missing signature or token" }, { status: 403 }),
         body: null,
       };
     }
