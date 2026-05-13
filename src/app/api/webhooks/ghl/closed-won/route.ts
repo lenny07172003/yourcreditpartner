@@ -168,11 +168,11 @@ export async function POST(req: NextRequest) {
     `[ghl/closed-won] Referral ${referral.id} closed. Commission: $${(result.commission_amount_cents / 100).toFixed(2)} at ${(result.commission_rate * 100).toFixed(0)}%`
   );
 
-  // Move opportunity to Closed Won stage
+  // Move opportunity to Closed Won stage + mark status as "won"
   const closedStageId = process.env.GHL_STAGE_CLOSED_WON;
   if (referral.ghl_opportunity_id && closedStageId) {
     try {
-      await updateOpportunityStage(referral.ghl_opportunity_id, closedStageId);
+      await updateOpportunityStage(referral.ghl_opportunity_id, closedStageId, "won");
     } catch (err) {
       console.error("[ghl/closed-won] Failed to move opportunity:", err);
     }

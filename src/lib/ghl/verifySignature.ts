@@ -27,6 +27,13 @@ export async function verifyGhlSignature(
   const rawBody = await req.text();
   const signature = req.headers.get("x-ghl-signature") ?? req.headers.get("x-webhook-signature");
 
+  // Log the raw payload so we can verify GHL's actual field names match our extractors.
+  // Toggle on by setting GHL_LOG_PAYLOADS=true in env.
+  if (process.env.GHL_LOG_PAYLOADS === "true") {
+    console.log(`[ghl-webhook] ${req.nextUrl.pathname} raw payload:`, rawBody);
+    console.log(`[ghl-webhook] ${req.nextUrl.pathname} headers:`, Object.fromEntries(req.headers.entries()));
+  }
+
   if (signature) {
     const expected = createHmac("sha256", secret).update(rawBody).digest("hex");
     const expectedBuf = Buffer.from(expected, "utf8");

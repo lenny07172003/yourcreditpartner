@@ -109,11 +109,11 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  // Move opportunity to Lost stage
+  // Move opportunity to Lost stage + mark status as "lost"
   const lostStageId = process.env.GHL_STAGE_LOST;
   if (referral.ghl_opportunity_id && lostStageId) {
     try {
-      await updateOpportunityStage(referral.ghl_opportunity_id, lostStageId);
+      await updateOpportunityStage(referral.ghl_opportunity_id, lostStageId, "lost");
     } catch (err) {
       console.error("[ghl/refunded] Failed to move opportunity:", err);
     }

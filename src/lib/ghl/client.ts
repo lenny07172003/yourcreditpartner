@@ -194,17 +194,23 @@ export async function createOpportunity(
 
 /**
  * Move an opportunity to a different pipeline stage.
+ * Optionally updates the opportunity status (open/won/lost/abandoned).
+ *
+ * Terminal stages (Closed Won, Lost) should also update status so GHL's
+ * win/loss reporting is accurate.
  */
 export async function updateOpportunityStage(
   opportunityId: string,
-  pipelineStageId: string
+  pipelineStageId: string,
+  status?: "open" | "won" | "lost" | "abandoned"
 ): Promise<void> {
+  const body: Record<string, unknown> = { pipelineStageId };
+  if (status) body.status = status;
+
   const res = await fetch(`${BASE_URL}/opportunities/${opportunityId}`, {
     method: "PUT",
     headers: getHeaders(),
-    body: JSON.stringify({
-      pipelineStageId,
-    }),
+    body: JSON.stringify(body),
   });
 
   if (!res.ok) {
