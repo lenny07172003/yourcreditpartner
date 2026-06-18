@@ -52,7 +52,7 @@ export async function getCloseCountForMonth(
   supabase: SupabaseClient,
   partnerId: string,
   closeMonth: string
-): Promise<number> {
+): Promise<any> {
   const { count, error } = await supabase
     .from("commissions")
     .select("id", { count: "exact", head: true })
@@ -60,7 +60,7 @@ export async function getCloseCountForMonth(
     .eq("close_month", closeMonth)
     .neq("state", "voided");
 
-  if (error) throw error;
+  if (error) return error;
   return count ?? 0;
 }
 

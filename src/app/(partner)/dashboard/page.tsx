@@ -117,7 +117,8 @@ export default async function DashboardPage() {
 
   if (!partner) redirect("/auth/login");
   const now = new Date();
-  const closeMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  // const closeMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const closeMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 
   // Load data — safe defaults if queries fail
   let tiers: CommissionTier[] = [];
@@ -131,6 +132,7 @@ export default async function DashboardPage() {
 
   try {
     closeCount = await getCloseCountForMonth(admin, partner.id, closeMonth);
+    console.log("closeCount:", closeCount);
   } catch (e) {
     console.error("[dashboard] getCloseCount error:", e);
   }

@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useState, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
 import Link from "next/link";
@@ -10,15 +10,18 @@ function ApplySuccessContent() {
   const email = params.get("email") ?? "";
   const [sent, setSent] = useState(false);
   const [resending, setResending] = useState(false);
+  const otpSentRef = useRef(false);
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
-  // Auto-send magic link on mount
+  // Auto-send magic link on mount (only once)
   useEffect(() => {
-    if (!email) return;
+    if (!email || otpSentRef.current) return;
+    
+    otpSentRef.current = true;
     supabase.auth
       .signInWithOtp({
         email,
@@ -27,8 +30,7 @@ function ApplySuccessContent() {
         },
       })
       .then(() => setSent(true));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [email]);
+  }, [email, supabase]);
 
   async function resend() {
     setResending(true);
