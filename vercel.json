@@ -6,6 +6,7 @@
     { "path": "/api/cron/dormancy-check", "schedule": "0 14 * * *" },
     { "path": "/api/cron/tier-threshold-alerts", "schedule": "0 16 * * *" },
     { "path": "/api/cron/drip-campaigns", "schedule": "0 13 * * *" },
-    { "path": "/api/cron/client-nurture-dispatcher", "schedule": "*/15 * * * *" }
+    { "path": "/api/cron/client-nurture-dispatcher", "schedule": "*/15 * * * *" },
+    { "path": "/api/cron/leaderboard-refresh", "schedule": "*/5 * * * *" }
   ]
 }

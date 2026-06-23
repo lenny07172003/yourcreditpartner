@@ -15,6 +15,7 @@ import {
   Target,
   TrendingUp,
   Video,
+  Trophy,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -29,6 +30,7 @@ const PARTNER_NAV: NavItem[] = [
   { href: "/dashboard/referrals", label: "Referrals", icon: Users },
   { href: "/dashboard/submit", label: "Submit Referral", icon: UserPlus },
   { href: "/dashboard/commissions", label: "Commissions", icon: DollarSign },
+  { href: "/dashboard/leaderboard", label: "Leaderboard", icon: Trophy },
   { href: "/dashboard/resources", label: "Resources", icon: BookOpen },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ];
@@ -40,6 +42,7 @@ const ADMIN_NAV: NavItem[] = [
   { href: "/admin/payouts", label: "Payouts", icon: Banknote },
   { href: "/admin/sales-reps", label: "Sales Reps", icon: Target },
   { href: "/admin/cashflow", label: "Cashflow", icon: TrendingUp },
+  { href: "/admin/leaderboard", label: "Leaderboard", icon: Trophy },
   { href: "/admin/videos", label: "Videos", icon: Video },
   { href: "/admin/settings/tiers", label: "Tier Settings", icon: Settings },
 ];
