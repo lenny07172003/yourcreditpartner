@@ -38,6 +38,7 @@ CREATE TABLE calendar_bookings (
   referral_id uuid NOT NULL UNIQUE REFERENCES referrals(id) ON DELETE CASCADE,
   sales_rep_id uuid NOT NULL REFERENCES sales_reps(id),
   scheduled_for timestamptz NOT NULL,
+  ends_at timestamptz NOT NULL,
   duration_min integer NOT NULL DEFAULT 30 CHECK (duration_min BETWEEN 15 AND 180),
   buffer_after_min integer NOT NULL DEFAULT 5 CHECK (buffer_after_min BETWEEN 0 AND 120),
   client_timezone text NOT NULL,
@@ -48,7 +49,8 @@ CREATE TABLE calendar_bookings (
   external_provider text CHECK (external_provider IN ('ghl', 'cal_com')),
   cancelled_reason text,
   created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CHECK (ends_at > scheduled_for)
 );
 
 CREATE INDEX calendar_bookings_rep_schedule_idx
@@ -62,11 +64,7 @@ CREATE EXTENSION IF NOT EXISTS btree_gist;
 ALTER TABLE calendar_bookings ADD CONSTRAINT calendar_bookings_no_overlap
   EXCLUDE USING gist (
     sales_rep_id WITH =,
-    tstzrange(
-      scheduled_for,
-      scheduled_for + make_interval(mins => duration_min + buffer_after_min),
-      '[)'
-    ) WITH &&
+    tstzrange(scheduled_for, ends_at, '[)') WITH &&
   ) WHERE (status IN ('booked', 'rescheduled'));
 
 CREATE TABLE calendar_event_log (
@@ -171,10 +169,12 @@ BEGIN
   SELECT id INTO v_booking_id FROM calendar_bookings WHERE referral_id = p_referral_id FOR UPDATE;
   IF v_booking_id IS NULL THEN
     INSERT INTO calendar_bookings (
-      referral_id, sales_rep_id, scheduled_for, duration_min, buffer_after_min,
+      referral_id, sales_rep_id, scheduled_for, ends_at, duration_min, buffer_after_min,
       client_timezone, status, ics_uid
     ) VALUES (
-      p_referral_id, p_sales_rep_id, p_scheduled_for, p_duration_min, p_buffer_after_min,
+      p_referral_id, p_sales_rep_id, p_scheduled_for,
+      p_scheduled_for + make_interval(mins => p_duration_min + p_buffer_after_min),
+      p_duration_min, p_buffer_after_min,
       p_client_timezone, 'booked', p_ics_uid
     ) RETURNING id INTO v_booking_id;
   ELSE
@@ -182,6 +182,7 @@ BEGIN
     UPDATE calendar_bookings SET
       sales_rep_id = p_sales_rep_id,
       scheduled_for = p_scheduled_for,
+      ends_at = p_scheduled_for + make_interval(mins => p_duration_min + p_buffer_after_min),
       duration_min = p_duration_min,
       buffer_after_min = p_buffer_after_min,
       client_timezone = p_client_timezone,
