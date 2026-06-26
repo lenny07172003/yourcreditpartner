@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getPartnerBySlug, logPartnerEvent } from "@/lib/supabase/queries";
 import { pushReferralToGhl } from "@/lib/ghl/push-contact";
+import { sendBookingInvite } from "@/lib/calendar/notifications";
 
 const ReferralSchema = z.object({
   firstName: z.string().min(1).max(100),
@@ -93,5 +94,14 @@ export async function POST(req: NextRequest, { params }: Props) {
     partnerCompany: partner.company_name ?? undefined,
   }).catch((err) => console.error("[refer] GHL push failed:", err));
 
-  return NextResponse.json({ success: true });
+  const bookingUrl = await sendBookingInvite({
+    referralId: referral.id,
+    clientName: firstName,
+    clientEmail: email.toLowerCase(),
+  }).catch((err) => {
+    console.error("[refer] calendar invite failed:", err);
+    return null;
+  });
+
+  return NextResponse.json({ success: true, bookingUrl });
 }

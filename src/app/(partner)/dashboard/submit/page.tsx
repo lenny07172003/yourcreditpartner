@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createBrowserClient } from "@supabase/ssr";
 import { CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 
@@ -11,6 +10,7 @@ export default function SubmitReferralPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [bookingUrl, setBookingUrl] = useState<string | null>(null);
 
   const [form, setForm] = useState({
     clientFirstName: "",
@@ -47,6 +47,8 @@ export default function SubmitReferralPage() {
       return;
     }
 
+    const data = await res.json();
+    setBookingUrl(data.bookingUrl ?? null);
     toast.success("Referral submitted successfully!");
     setSuccess(true);
     setLoading(false);
@@ -64,10 +66,19 @@ export default function SubmitReferralPage() {
             We&rsquo;ll reach out to {form.clientFirstName} and schedule their free
             consultation. You&rsquo;ll see updates on your referrals page.
           </p>
+          {bookingUrl && (
+            <div className="mt-4 rounded-lg border border-line bg-surface p-3 text-left">
+              <p className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Client booking link</p>
+              <a href={bookingUrl} target="_blank" rel="noreferrer" className="mt-1 block truncate text-sm font-medium text-brand-600 hover:underline">
+                {bookingUrl}
+              </a>
+            </div>
+          )}
           <div className="mt-6 flex gap-3 justify-center">
             <button
               onClick={() => {
                 setSuccess(false);
+                setBookingUrl(null);
                 setForm({
                   clientFirstName: "",
                   clientLastName: "",
