@@ -40,6 +40,7 @@ export async function POST(req: NextRequest) {
     const { data: existing } = await admin
       .from("partner_video_progress")
       .select("*")
+      .eq("org_id", partner.org_id)
       .eq("partner_id", partner.id)
       .eq("video_id", videoId)
       .maybeSingle();
@@ -51,10 +52,12 @@ export async function POST(req: NextRequest) {
           await admin
             .from("partner_video_progress")
             .update({ last_position_seconds: positionSeconds })
+            .eq("org_id", partner.org_id)
             .eq("id", existing.id);
         }
       } else {
         await admin.from("partner_video_progress").insert({
+          org_id: partner.org_id,
           partner_id: partner.id,
           video_id: videoId,
           started_at: new Date().toISOString(),
@@ -69,9 +72,11 @@ export async function POST(req: NextRequest) {
             completed_at: existing.completed_at ?? new Date().toISOString(),
             last_position_seconds: positionSeconds ?? existing.last_position_seconds,
           })
+          .eq("org_id", partner.org_id)
           .eq("id", existing.id);
       } else {
         await admin.from("partner_video_progress").insert({
+          org_id: partner.org_id,
           partner_id: partner.id,
           video_id: videoId,
           started_at: new Date().toISOString(),
@@ -83,8 +88,8 @@ export async function POST(req: NextRequest) {
       // Check if all required videos are now complete → mark fast_start_completed
       if (!partner.fast_start_completed_at) {
         const [videos, allProgress] = await Promise.all([
-          getVideosForPartnerType(supabase, partner.partner_type),
-          getVideoProgress(supabase, partner.id),
+          getVideosForPartnerType(supabase, partner.partner_type, partner.org_id),
+          getVideoProgress(supabase, partner.id, partner.org_id),
         ]);
 
         const required = videos.filter((v) => v.required);
@@ -100,6 +105,7 @@ export async function POST(req: NextRequest) {
           await admin
             .from("partners")
             .update({ fast_start_completed_at: new Date().toISOString() })
+            .eq("org_id", partner.org_id)
             .eq("id", partner.id);
         }
       }
@@ -111,6 +117,7 @@ export async function POST(req: NextRequest) {
         await admin
           .from("partner_video_progress")
           .update({ last_position_seconds: positionSeconds })
+          .eq("org_id", partner.org_id)
           .eq("id", existing.id);
       }
     }

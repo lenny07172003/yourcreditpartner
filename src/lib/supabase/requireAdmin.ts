@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getOrgIdFromUser } from "@/lib/org/context";
 
 /**
  * Call at the top of every admin API route handler.
@@ -24,6 +25,7 @@ export async function requireAdmin(): Promise<NextResponse | null> {
   const { data: adminUser } = await admin
     .from("admin_users")
     .select("id")
+    .eq("org_id", getOrgIdFromUser(user))
     .eq("email", user.email!.toLowerCase())
     .maybeSingle();
 

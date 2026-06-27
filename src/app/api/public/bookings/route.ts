@@ -22,18 +22,19 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const referralId = await verifyBookingToken(parsed.data.token);
+    const { referralId, orgId } = await verifyBookingToken(parsed.data.token);
     const admin = createAdminClient();
     const { data: referral, error } = await admin
       .from("referrals")
       .select("id, stage, client_first_name, client_last_name, client_email")
+      .eq("org_id", orgId)
       .eq("id", referralId)
       .maybeSingle();
     if (error || !referral) return NextResponse.json({ error: "This booking link is no longer available." }, { status: 404 });
     if (!["submitted", "booked"].includes(referral.stage)) return NextResponse.json({ error: "This referral is no longer eligible to book." }, { status: 409 });
 
     const salesRepId = await ensureReferralAssignment(admin, referral.id);
-    const slots = await getAvailableSlots(admin, salesRepId);
+    const slots = await getAvailableSlots(admin, salesRepId, orgId);
     const selected = slots.find((slot) => slot.startsAt === parsed.data.startsAt);
     if (!selected) return NextResponse.json({ error: "That appointment time is no longer available. Please choose another slot." }, { status: 409 });
 

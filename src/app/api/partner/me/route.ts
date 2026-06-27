@@ -65,6 +65,7 @@ export async function PATCH(req: NextRequest) {
   const { error } = await admin
     .from("partners")
     .update(updates)
+    .eq("org_id", partner.org_id)
     .eq("id", partner.id);
 
   if (error) {

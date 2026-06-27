@@ -2,6 +2,7 @@ export type LeaderboardPeriod = "month" | "all_time";
 export type LeaderboardMetric = "submissions" | "closes";
 
 export interface LeaderboardEntry {
+  org_id: string;
   partner_id: string;
   display_name: string;
   show_company: boolean;
@@ -13,6 +14,7 @@ export interface LeaderboardEntry {
 }
 
 export interface LeaderboardOptIn {
+  org_id: string;
   partner_id: string;
   display_name: string;
   show_company: boolean;

@@ -9,6 +9,7 @@ import type { LeaderboardEntry, LeaderboardMetric, LeaderboardOptIn, Leaderboard
 
 type Props = {
   partnerId: string;
+  orgId: string;
   partnerName: string;
   optIn: LeaderboardOptIn | null;
   monthEntries: LeaderboardEntry[];
@@ -33,7 +34,7 @@ function rankClass(rank: number) {
   return "bg-surface-raised text-ink-muted";
 }
 
-export function LeaderboardView({ partnerId, partnerName, optIn: initialOptIn, monthEntries, allTimeEntries, topN }: Props) {
+export function LeaderboardView({ partnerId, orgId, partnerName, optIn: initialOptIn, monthEntries, allTimeEntries, topN }: Props) {
   const [period, setPeriod] = useState<LeaderboardPeriod>("month");
   const [metric, setMetric] = useState<LeaderboardMetric>("submissions");
   const [optIn, setOptIn] = useState(initialOptIn);
@@ -56,7 +57,7 @@ export function LeaderboardView({ partnerId, partnerName, optIn: initialOptIn, m
     const data = await res.json();
     setSaving(false);
     if (!res.ok) return toast.error(data.error ?? "Could not update leaderboard preferences.");
-    setOptIn({ partner_id: partnerId, display_name: displayName.trim(), show_company: showCompany, opted_in_at: new Date().toISOString() });
+    setOptIn({ org_id: orgId, partner_id: partnerId, display_name: displayName.trim(), show_company: showCompany, opted_in_at: new Date().toISOString() });
     toast.success("You’re on the leaderboard. Rankings refresh within five minutes.");
   }
 

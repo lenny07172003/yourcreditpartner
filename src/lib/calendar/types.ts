@@ -2,6 +2,7 @@ export type CalendarBookingStatus = "booked" | "rescheduled" | "cancelled" | "no
 
 export interface CalendarAvailability {
   id: string;
+  org_id: string;
   sales_rep_id: string;
   weekday: number;
   start_time: string;
@@ -14,9 +15,11 @@ export interface CalendarAvailability {
 
 export interface CalendarBooking {
   id: string;
+  org_id: string;
   referral_id: string;
   sales_rep_id: string;
   scheduled_for: string;
+  ends_at: string;
   duration_min: number;
   buffer_after_min: number;
   client_timezone: string;

@@ -16,6 +16,7 @@ import type {
   CloserCommission,
   MonthlyCompanyStats,
 } from "@/types/database";
+import { OCG_ORG_ID } from "@/lib/org/context";
 
 // ============================================================
 // PARTNER QUERIES
@@ -23,24 +24,28 @@ import type {
 
 export async function getPartnerByAuthId(
   supabase: SupabaseClient,
-  authUserId: string
+  authUserId: string,
+  orgId?: string
 ): Promise<Partner | null> {
-  const { data, error } = await supabase
+  let query = supabase
     .from("partners")
     .select("*")
-    .eq("auth_user_id", authUserId)
-    .single();
+    .eq("auth_user_id", authUserId);
+  if (orgId) query = query.eq("org_id", orgId);
+  const { data, error } = await query.single();
   if (error) return null;
   return data as Partner;
 }
 
 export async function getPartnerByEmail(
   supabase: SupabaseClient,
-  email: string
+  email: string,
+  orgId: string = OCG_ORG_ID
 ): Promise<Partner | null> {
   const { data, error } = await supabase
     .from("partners")
     .select("*")
+    .eq("org_id", orgId)
     .eq("email", email.toLowerCase())
     .single();
   if (error) return null;
@@ -49,11 +54,13 @@ export async function getPartnerByEmail(
 
 export async function getPartnerBySlug(
   supabase: SupabaseClient,
-  slug: string
+  slug: string,
+  orgId: string = OCG_ORG_ID
 ): Promise<Partner | null> {
   const { data, error } = await supabase
     .from("partners")
     .select("*")
+    .eq("org_id", orgId)
     .eq("partner_slug", slug)
     .single();
   if (error) return null;
@@ -65,11 +72,13 @@ export async function getPartnerBySlug(
 // ============================================================
 
 export async function getActivePartnerTypes(
-  supabase: SupabaseClient
+  supabase: SupabaseClient,
+  orgId: string = OCG_ORG_ID
 ): Promise<PartnerType[]> {
   const { data, error } = await supabase
     .from("partner_types")
     .select("*")
+    .eq("org_id", orgId)
     .eq("active", true)
     .order("sort_order");
   if (error) throw error;
@@ -82,12 +91,14 @@ export async function getActivePartnerTypes(
 
 export async function getVideosForPartnerType(
   supabase: SupabaseClient,
-  partnerTypeSlug: string
+  partnerTypeSlug: string,
+  orgId: string = OCG_ORG_ID
 ): Promise<FastStartVideo[]> {
   // Get the fast_start_track for this partner type
   const { data: pt } = await supabase
     .from("partner_types")
     .select("fast_start_track")
+    .eq("org_id", orgId)
     .eq("slug", partnerTypeSlug)
     .single();
 
@@ -99,6 +110,7 @@ export async function getVideosForPartnerType(
   const { data, error } = await supabase
     .from("fast_start_videos")
     .select("*")
+    .eq("org_id", orgId)
     .overlaps("tracks", [track, "core"])
     .order("sort_order");
 
@@ -108,11 +120,13 @@ export async function getVideosForPartnerType(
 
 export async function getVideoProgress(
   supabase: SupabaseClient,
-  partnerId: string
+  partnerId: string,
+  orgId: string = OCG_ORG_ID
 ): Promise<PartnerVideoProgress[]> {
   const { data, error } = await supabase
     .from("partner_video_progress")
     .select("*")
+    .eq("org_id", orgId)
     .eq("partner_id", partnerId);
   if (error) throw error;
   return (data ?? []) as PartnerVideoProgress[];
@@ -123,11 +137,13 @@ export async function getVideoProgress(
 // ============================================================
 
 export async function getCommissionTiers(
-  supabase: SupabaseClient
+  supabase: SupabaseClient,
+  orgId: string = OCG_ORG_ID
 ): Promise<CommissionTier[]> {
   const { data, error } = await supabase
     .from("commission_tiers")
     .select("*")
+    .eq("org_id", orgId)
     .eq("active", true)
     .order("tier_number");
   if (error) throw error;
@@ -140,11 +156,13 @@ export async function getCommissionTiers(
 
 export async function getPartnerReferrals(
   supabase: SupabaseClient,
-  partnerId: string
+  partnerId: string,
+  orgId: string = OCG_ORG_ID
 ): Promise<Referral[]> {
   const { data, error } = await supabase
     .from("referrals")
     .select("*")
+    .eq("org_id", orgId)
     .eq("partner_id", partnerId)
     .order("created_at", { ascending: false });
   if (error) throw error;
@@ -153,11 +171,13 @@ export async function getPartnerReferrals(
 
 export async function getReferralByGhlContactId(
   supabase: SupabaseClient,
-  contactId: string
+  contactId: string,
+  orgId: string = OCG_ORG_ID
 ): Promise<Referral | null> {
   const { data, error } = await supabase
     .from("referrals")
     .select("*")
+    .eq("org_id", orgId)
     .eq("ghl_contact_id", contactId)
     .single();
   if (error) return null;
@@ -168,7 +188,8 @@ export async function checkDuplicateReferral(
   supabase: SupabaseClient,
   clientEmail: string,
   partnerId: string,
-  daysWindow: number = 90
+  daysWindow: number = 90,
+  orgId: string = OCG_ORG_ID
 ): Promise<Referral | null> {
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - daysWindow);
@@ -176,6 +197,7 @@ export async function checkDuplicateReferral(
   const { data, error } = await supabase
     .from("referrals")
     .select("*")
+    .eq("org_id", orgId)
     .eq("client_email", clientEmail.toLowerCase())
     .neq("partner_id", partnerId)
     .gte("created_at", cutoff.toISOString())
@@ -193,11 +215,13 @@ export async function checkDuplicateReferral(
 export async function getPartnerCommissions(
   supabase: SupabaseClient,
   partnerId: string,
-  closeMonth?: string
+  closeMonth?: string,
+  orgId: string = OCG_ORG_ID
 ): Promise<Commission[]> {
   let query = supabase
     .from("commissions")
     .select("*")
+    .eq("org_id", orgId)
     .eq("partner_id", partnerId)
     .order("created_at", { ascending: false });
 
@@ -217,11 +241,13 @@ export async function getPartnerCommissions(
 export async function getMonthlyStats(
   supabase: SupabaseClient,
   partnerId: string,
-  closeMonth: string
+  closeMonth: string,
+  orgId: string = OCG_ORG_ID
 ): Promise<MonthlyPartnerStats | null> {
   const { data, error } = await supabase
     .from("monthly_partner_stats")
     .select("*")
+    .eq("org_id", orgId)
     .eq("partner_id", partnerId)
     .eq("close_month", closeMonth)
     .single();
@@ -235,7 +261,7 @@ export async function upsertMonthlyStats(
 ): Promise<MonthlyPartnerStats> {
   const { data, error } = await supabase
     .from("monthly_partner_stats")
-    .upsert(stats, { onConflict: "partner_id,close_month" })
+    .upsert({ ...stats, org_id: stats.org_id ?? OCG_ORG_ID }, { onConflict: "org_id,partner_id,close_month" })
     .select()
     .single();
   if (error) throw error;
@@ -248,11 +274,13 @@ export async function upsertMonthlyStats(
 
 export async function getPartnerPayouts(
   supabase: SupabaseClient,
-  partnerId: string
+  partnerId: string,
+  orgId: string = OCG_ORG_ID
 ): Promise<Payout[]> {
   const { data, error } = await supabase
     .from("payouts")
     .select("*")
+    .eq("org_id", orgId)
     .eq("partner_id", partnerId)
     .order("created_at", { ascending: false });
   if (error) throw error;
@@ -266,6 +294,7 @@ export async function getPartnerPayouts(
 export async function logPartnerEvent(
   supabase: SupabaseClient,
   event: {
+    org_id?: string;
     partner_id: string | null;
     actor: "partner" | "system" | "admin";
     event_type: string;
@@ -274,7 +303,7 @@ export async function logPartnerEvent(
 ): Promise<PartnerEvent> {
   const { data, error } = await supabase
     .from("partner_events")
-    .insert(event)
+    .insert({ ...event, org_id: event.org_id ?? OCG_ORG_ID })
     .select()
     .single();
   if (error) throw error;
@@ -287,11 +316,13 @@ export async function logPartnerEvent(
 
 export async function isAdmin(
   supabase: SupabaseClient,
-  authUserId: string
+  authUserId: string,
+  orgId: string = OCG_ORG_ID
 ): Promise<boolean> {
   const { data } = await supabase
     .from("admin_users")
     .select("id")
+    .eq("org_id", orgId)
     .eq("auth_user_id", authUserId)
     .single();
   return !!data;
@@ -299,11 +330,13 @@ export async function isAdmin(
 
 export async function isAdminByEmail(
   supabase: SupabaseClient,
-  email: string
+  email: string,
+  orgId: string = OCG_ORG_ID
 ): Promise<AdminUser | null> {
   const { data } = await supabase
     .from("admin_users")
     .select("*")
+    .eq("org_id", orgId)
     .eq("email", email.toLowerCase())
     .single();
   return data as AdminUser | null;
@@ -314,11 +347,13 @@ export async function isAdminByEmail(
 // ============================================================
 
 export async function getActiveSalesReps(
-  supabase: SupabaseClient
+  supabase: SupabaseClient,
+  orgId: string = OCG_ORG_ID
 ): Promise<SalesRep[]> {
   const { data, error } = await supabase
     .from("sales_reps")
     .select("*")
+    .eq("org_id", orgId)
     .eq("status", "active")
     .order("last_name");
   if (error) throw error;
@@ -327,11 +362,13 @@ export async function getActiveSalesReps(
 
 export async function getReferralAssignment(
   supabase: SupabaseClient,
-  referralId: string
+  referralId: string,
+  orgId: string = OCG_ORG_ID
 ): Promise<ReferralAssignment | null> {
   const { data } = await supabase
     .from("referral_assignments")
     .select("*")
+    .eq("org_id", orgId)
     .eq("referral_id", referralId)
     .single();
   return data as ReferralAssignment | null;
@@ -343,11 +380,13 @@ export async function getReferralAssignment(
 
 export async function getCompanyStats(
   supabase: SupabaseClient,
-  closeMonth: string
+  closeMonth: string,
+  orgId: string = OCG_ORG_ID
 ): Promise<MonthlyCompanyStats | null> {
   const { data } = await supabase
     .from("monthly_company_stats")
     .select("*")
+    .eq("org_id", orgId)
     .eq("close_month", closeMonth)
     .single();
   return data as MonthlyCompanyStats | null;
@@ -360,11 +399,13 @@ export async function getCompanyStats(
 export async function getCloserCommissions(
   supabase: SupabaseClient,
   salesRepId: string,
-  closeMonth?: string
+  closeMonth?: string,
+  orgId: string = OCG_ORG_ID
 ): Promise<CloserCommission[]> {
   let query = supabase
     .from("closer_commissions")
     .select("*")
+    .eq("org_id", orgId)
     .eq("sales_rep_id", salesRepId)
     .order("created_at", { ascending: false });
 

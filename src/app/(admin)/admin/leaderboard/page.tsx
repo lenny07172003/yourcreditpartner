@@ -1,14 +1,15 @@
 import { Trophy } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getLeaderboardRankings, sortLeaderboard } from "@/lib/leaderboard/rankings";
+import { OCG_ORG_ID } from "@/lib/org/context";
 
 export default async function AdminLeaderboardPage() {
   const admin = createAdminClient();
   const [settingsResult, partnersResult, optInsResult, monthEntries] = await Promise.all([
-    admin.from("leaderboard_settings").select("enabled, top_n, anti_gaming_min_age_hours").maybeSingle(),
-    admin.from("partners").select("id, first_name, last_name, email, company_name, status").is("deleted_at", null).order("last_name"),
-    admin.from("partner_leaderboard_opt_in").select("partner_id, display_name, show_company, opted_in_at"),
-    getLeaderboardRankings(admin, "month"),
+    admin.from("leaderboard_settings").select("enabled, top_n, anti_gaming_min_age_hours").eq("org_id", OCG_ORG_ID).maybeSingle(),
+    admin.from("partners").select("id, first_name, last_name, email, company_name, status").eq("org_id", OCG_ORG_ID).is("deleted_at", null).order("last_name"),
+    admin.from("partner_leaderboard_opt_in").select("partner_id, display_name, show_company, opted_in_at").eq("org_id", OCG_ORG_ID),
+    getLeaderboardRankings(admin, "month", OCG_ORG_ID),
   ]);
 
   const settings = settingsResult.data;

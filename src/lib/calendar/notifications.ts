@@ -3,10 +3,11 @@ import { createBookingToken } from "@/lib/calendar/token";
 
 export async function sendBookingInvite(input: {
   referralId: string;
+  orgId: string;
   clientName: string;
   clientEmail: string;
 }) {
-  const token = await createBookingToken(input.referralId);
+  const token = await createBookingToken(input.referralId, input.orgId);
   const appUrl = process.env.NEXT_PUBLIC_APP_URL;
   if (!appUrl) throw new Error("[calendar] NEXT_PUBLIC_APP_URL is not set");
   const bookingUrl = `${appUrl}/book/${token}`;

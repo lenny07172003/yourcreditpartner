@@ -19,9 +19,11 @@ export async function POST() {
     await admin
       .from("partners")
       .update({ fast_start_skipped_at: new Date().toISOString() })
+      .eq("org_id", partner.org_id)
       .eq("id", partner.id);
 
     await admin.from("partner_events").insert({
+      org_id: partner.org_id,
       partner_id: partner.id,
       actor: "partner",
       event_type: "fast_start_skipped",

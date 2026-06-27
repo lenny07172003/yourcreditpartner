@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { pushPartnerToGhl } from "@/lib/ghl/push-contact";
+import { OCG_ORG_ID } from "@/lib/org/context";
 
 const ApplySchema = z.object({
   partnerType: z.string().min(1),
@@ -58,6 +59,7 @@ export async function POST(req: NextRequest) {
     const { data: existing } = await admin
       .from("partners")
       .select("id")
+      .eq("org_id", OCG_ORG_ID)
       .eq("email", email.toLowerCase())
       .maybeSingle();
 
@@ -77,6 +79,7 @@ export async function POST(req: NextRequest) {
       const { data: referrer } = await admin
         .from("partners")
         .select("id")
+        .eq("org_id", OCG_ORG_ID)
         .eq("partner_slug", referredBySlug)
         .eq("status", "active")
         .maybeSingle();
@@ -85,6 +88,7 @@ export async function POST(req: NextRequest) {
 
     // Create partner record
     const { error: insertError } = await admin.from("partners").insert({
+      org_id: OCG_ORG_ID,
       email: email.toLowerCase(),
       phone,
       first_name: firstName,
@@ -121,6 +125,7 @@ export async function POST(req: NextRequest) {
 
     if (partner) {
       await admin.from("partner_events").insert({
+        org_id: OCG_ORG_ID,
         partner_id: partner.id,
         actor: "system",
         event_type: "partner_applied",

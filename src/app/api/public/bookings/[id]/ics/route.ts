@@ -8,11 +8,12 @@ export async function GET(req: NextRequest, ctx: RouteContext<"/api/public/booki
   try {
     const { id } = await ctx.params;
     const token = req.nextUrl.searchParams.get("token") ?? "";
-    const referralId = await verifyBookingToken(token);
+    const { referralId, orgId } = await verifyBookingToken(token);
     const admin = createAdminClient();
     const { data, error } = await admin
       .from("calendar_bookings")
       .select("*, referrals!inner(client_first_name, client_last_name), sales_reps!inner(first_name, last_name)")
+      .eq("org_id", orgId)
       .eq("id", id)
       .eq("referral_id", referralId)
       .maybeSingle();

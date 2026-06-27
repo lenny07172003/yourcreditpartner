@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getOrgIdFromUser } from "@/lib/org/context";
 
 const ruleSchema = z.object({
   weekday: z.number().int().min(0).max(6),
@@ -18,14 +19,15 @@ async function getCurrentRep() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
   const admin = createAdminClient();
-  const { data } = await admin.from("sales_reps").select("id").eq("auth_user_id", user.id).eq("status", "active").is("deleted_at", null).maybeSingle();
+  const orgId = getOrgIdFromUser(user);
+  const { data } = await admin.from("sales_reps").select("id, org_id").eq("org_id", orgId).eq("auth_user_id", user.id).eq("status", "active").is("deleted_at", null).maybeSingle();
   return data;
 }
 
 export async function GET() {
   const rep = await getCurrentRep();
   if (!rep) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const { data, error } = await createAdminClient().from("calendar_availability").select("*").eq("sales_rep_id", rep.id).order("weekday").order("start_time");
+  const { data, error } = await createAdminClient().from("calendar_availability").select("*").eq("org_id", rep.org_id).eq("sales_rep_id", rep.id).order("weekday").order("start_time");
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ rules: data ?? [] });
 }
@@ -37,10 +39,10 @@ export async function PUT(req: NextRequest) {
   if (!parsed.success) return NextResponse.json({ error: "Invalid availability rules." }, { status: 400 });
   try { parsed.data.rules.forEach((rule) => Intl.DateTimeFormat(undefined, { timeZone: rule.timezone })); } catch { return NextResponse.json({ error: "Use a valid IANA time zone, such as America/New_York." }, { status: 400 }); }
   const admin = createAdminClient();
-  const { error: deleteError } = await admin.from("calendar_availability").delete().eq("sales_rep_id", rep.id);
+  const { error: deleteError } = await admin.from("calendar_availability").delete().eq("org_id", rep.org_id).eq("sales_rep_id", rep.id);
   if (deleteError) return NextResponse.json({ error: deleteError.message }, { status: 500 });
   if (parsed.data.rules.length) {
-    const { error } = await admin.from("calendar_availability").insert(parsed.data.rules.map((rule) => ({ sales_rep_id: rep.id, weekday: rule.weekday, start_time: rule.startTime, end_time: rule.endTime, timezone: rule.timezone, buffer_before_min: rule.bufferBeforeMin, buffer_after_min: rule.bufferAfterMin })));
+    const { error } = await admin.from("calendar_availability").insert(parsed.data.rules.map((rule) => ({ org_id: rep.org_id, sales_rep_id: rep.id, weekday: rule.weekday, start_time: rule.startTime, end_time: rule.endTime, timezone: rule.timezone, buffer_before_min: rule.bufferBeforeMin, buffer_after_min: rule.bufferAfterMin })));
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   }
   return NextResponse.json({ ok: true });

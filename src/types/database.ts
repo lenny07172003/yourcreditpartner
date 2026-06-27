@@ -23,6 +23,10 @@ export type AdminRole = "admin" | "viewer";
 export type TierMechanic = "retroactive" | "marginal";
 export type SubmissionPath = "partner_filled" | "client_filled";
 export type SalesRepStatus = "active" | "paused" | "terminated";
+export type OrgStatus = "active" | "paused" | "suspended";
+export type OrgPlan = "launch" | "starter" | "growth" | "scale" | "enterprise";
+export type CalendarProvider = "in_house" | "ghl" | "cal_com";
+export type TenantIntegrationProvider = "twilio" | "stripe" | "resend" | "ghl" | "cal_com";
 
 export type AppointmentStatus = "scheduled" | "rescheduled" | "cancelled" | "completed" | "no_show";
 
@@ -40,6 +44,7 @@ export type NurtureStage =
 // ============================================================
 
 export interface PartnerType {
+  org_id: string;
   slug: string;
   display_name: string;
   email_variant: string;
@@ -53,6 +58,7 @@ export interface PartnerType {
 
 export interface Partner {
   id: string;
+  org_id: string;
   auth_user_id: string | null;
   email: string;
   phone: string;
@@ -91,6 +97,7 @@ export interface Partner {
 
 export interface PartnerReferralCommission {
   id: string;
+  org_id: string;
   source_commission_id: string;
   referring_partner_id: string;
   earning_partner_id: string;
@@ -107,6 +114,7 @@ export interface PartnerReferralCommission {
 
 export interface FastStartVideo {
   id: string;
+  org_id: string;
   slug: string;
   title: string;
   description: string | null;
@@ -123,6 +131,7 @@ export interface FastStartVideo {
 
 export interface PartnerVideoProgress {
   id: string;
+  org_id: string;
   partner_id: string;
   video_id: string;
   started_at: string | null;
@@ -132,6 +141,7 @@ export interface PartnerVideoProgress {
 
 export interface CommissionTier {
   id: string;
+  org_id: string;
   tier_number: number;
   display_name: string;
   min_closes: number;
@@ -144,6 +154,7 @@ export interface CommissionTier {
 
 export interface Referral {
   id: string;
+  org_id: string;
   partner_id: string;
   partner_type: string;
   submission_path: SubmissionPath | null;
@@ -182,6 +193,7 @@ export interface Referral {
 
 export interface Commission {
   id: string;
+  org_id: string;
   referral_id: string;
   partner_id: string;
   close_month: string;
@@ -201,6 +213,7 @@ export interface Commission {
 
 export interface Payout {
   id: string;
+  org_id: string;
   partner_id: string;
   total_cents: number;
   commission_count: number;
@@ -214,6 +227,7 @@ export interface Payout {
 
 export interface MonthlyPartnerStats {
   id: string;
+  org_id: string;
   partner_id: string;
   close_month: string;
   close_count: number;
@@ -229,6 +243,7 @@ export interface MonthlyPartnerStats {
 
 export interface PartnerEvent {
   id: string;
+  org_id: string;
   partner_id: string | null;
   actor: ActorType | null;
   event_type: string;
@@ -238,6 +253,7 @@ export interface PartnerEvent {
 
 export interface EmailSend {
   id: string;
+  org_id: string;
   partner_id: string | null;
   campaign: string;
   subject: string | null;
@@ -249,6 +265,7 @@ export interface EmailSend {
 
 export interface AdminUser {
   id: string;
+  org_id: string;
   auth_user_id: string | null;
   email: string;
   role: AdminRole;
@@ -261,6 +278,7 @@ export interface AdminUser {
 
 export interface SalesRep {
   id: string;
+  org_id: string;
   auth_user_id: string | null;
   email: string;
   first_name: string;
@@ -278,6 +296,7 @@ export interface SalesRep {
 
 export interface ReferralAssignment {
   id: string;
+  org_id: string;
   referral_id: string;
   sales_rep_id: string;
   assigned_at: string;
@@ -288,6 +307,7 @@ export interface ReferralAssignment {
 
 export interface CloserCommission {
   id: string;
+  org_id: string;
   referral_id: string;
   sales_rep_id: string;
   close_month: string;
@@ -307,6 +327,7 @@ export interface CloserCommission {
 
 export interface CloserPayout {
   id: string;
+  org_id: string;
   sales_rep_id: string;
   total_cents: number;
   commission_count: number;
@@ -320,6 +341,7 @@ export interface CloserPayout {
 
 export interface MonthlyCompanyStats {
   id: string;
+  org_id: string;
   close_month: string;
   total_revenue_cents: number;
   total_partner_commission_cents: number;
@@ -337,6 +359,7 @@ export interface MonthlyCompanyStats {
 
 export interface ClientNurtureQueue {
   id: string;
+  org_id: string;
   referral_id: string;
   campaign_step: string;
   scheduled_for: string;
@@ -349,6 +372,7 @@ export interface ClientNurtureQueue {
 
 export interface ClientNurtureSend {
   id: string;
+  org_id: string;
   referral_id: string;
   campaign_step: string;
   subject: string | null;
@@ -363,6 +387,7 @@ export interface ClientNurtureSend {
 
 export interface ClientNurtureTemplate {
   id: string;
+  org_id: string;
   campaign_step: string;
   stage: string;
   delay_minutes: number;
@@ -374,6 +399,7 @@ export interface ClientNurtureTemplate {
 }
 
 export interface RoundRobinConfig {
+  org_id: string;
   id: string;
   last_assigned_rep_id: string | null;
   updated_at: string;
@@ -381,6 +407,7 @@ export interface RoundRobinConfig {
 
 export interface CalendarAvailability {
   id: string;
+  org_id: string;
   sales_rep_id: string;
   weekday: number;
   start_time: string;
@@ -395,6 +422,7 @@ export interface CalendarAvailability {
 
 export interface CalendarBooking {
   id: string;
+  org_id: string;
   referral_id: string;
   sales_rep_id: string;
   scheduled_for: string;
@@ -406,6 +434,53 @@ export interface CalendarBooking {
   ics_uid: string;
   reschedule_count: number;
   cancelled_reason: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Org {
+  id: string;
+  slug: string;
+  name: string;
+  legal_name: string | null;
+  status: OrgStatus;
+  plan: OrgPlan;
+  primary_domain: string | null;
+  app_base_url: string | null;
+  cal_provider: CalendarProvider;
+  timezone: string;
+  admin_email: string | null;
+  stripe_customer_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OrgBranding {
+  org_id: string;
+  public_name: string;
+  logo_url: string | null;
+  favicon_url: string | null;
+  primary_color: string;
+  accent_color: string;
+  support_email: string | null;
+  sender_name: string;
+  sender_email: string | null;
+  reply_to_email: string | null;
+  booking_headline: string;
+  referral_headline: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TenantIntegration {
+  id: string;
+  org_id: string;
+  provider: TenantIntegrationProvider;
+  enabled: boolean;
+  credentials_ciphertext: string | null;
+  credentials_iv: string | null;
+  credentials_tag: string | null;
+  config: Record<string, unknown>;
   created_at: string;
   updated_at: string;
 }

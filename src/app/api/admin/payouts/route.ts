@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/supabase/requireAdmin";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { batchTransition } from "@/lib/commissions/state-machine";
+import { OCG_ORG_ID } from "@/lib/org/context";
 
 export async function GET() {
   const deny = await requireAdmin();
@@ -12,6 +13,7 @@ export async function GET() {
   const { data, error } = await admin
     .from("payouts")
     .select("*, partners!inner(first_name, last_name)")
+    .eq("org_id", OCG_ORG_ID)
     .order("created_at", { ascending: false })
     .limit(100);
 
@@ -46,6 +48,7 @@ export async function POST(req: NextRequest) {
     const { data: payable } = await admin
       .from("commissions")
       .select("id, partner_id, amount_cents")
+      .eq("org_id", OCG_ORG_ID)
       .eq("state", "payable");
 
     if (!payable || payable.length === 0) {
@@ -69,6 +72,7 @@ export async function POST(req: NextRequest) {
       const { data: partner } = await admin
         .from("partners")
         .select("zelle_handle")
+        .eq("org_id", OCG_ORG_ID)
         .eq("id", partnerId)
         .single();
 
@@ -76,6 +80,7 @@ export async function POST(req: NextRequest) {
       const { data: payout } = await admin
         .from("payouts")
         .insert({
+          org_id: OCG_ORG_ID,
           partner_id: partnerId,
           total_cents: group.total,
           commission_count: group.ids.length,
@@ -89,6 +94,7 @@ export async function POST(req: NextRequest) {
         // Transition commissions to paid
         await batchTransition(admin, group.ids, "payable", "paid", {
           payout_id: payout.id,
+          org_id: OCG_ORG_ID,
         });
         created++;
       }

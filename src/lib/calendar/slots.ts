@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { AvailableCalendarSlot, CalendarAvailability, CalendarBooking } from "@/lib/calendar/types";
+import { OCG_ORG_ID } from "@/lib/org/context";
 
 const SLOT_DURATION_MIN = 30;
 const LOOKAHEAD_DAYS = 21;
@@ -42,15 +43,16 @@ function overlaps(start: Date, end: Date, blockedStart: Date, blockedEnd: Date) 
 
 export async function getAvailableSlots(
   supabase: SupabaseClient,
-  salesRepId: string
+  salesRepId: string,
+  orgId: string = OCG_ORG_ID
 ): Promise<AvailableCalendarSlot[]> {
   const now = new Date();
   const until = new Date(now.getTime() + LOOKAHEAD_DAYS * 86_400_000);
   const [availabilityResult, bookingsResult, blocksResult, repResult] = await Promise.all([
-    supabase.from("calendar_availability").select("*").eq("sales_rep_id", salesRepId).eq("active", true),
-    supabase.from("calendar_bookings").select("*").eq("sales_rep_id", salesRepId).in("status", ["booked", "rescheduled"]).gte("scheduled_for", now.toISOString()).lt("scheduled_for", until.toISOString()),
-    supabase.from("calendar_blocked_times").select("*").or(`sales_rep_id.eq.${salesRepId},sales_rep_id.is.null`).lt("starts_at", until.toISOString()).gt("ends_at", now.toISOString()),
-    supabase.from("sales_reps").select("first_name, last_name").eq("id", salesRepId).single(),
+    supabase.from("calendar_availability").select("*").eq("org_id", orgId).eq("sales_rep_id", salesRepId).eq("active", true),
+    supabase.from("calendar_bookings").select("*").eq("org_id", orgId).eq("sales_rep_id", salesRepId).in("status", ["booked", "rescheduled"]).gte("scheduled_for", now.toISOString()).lt("scheduled_for", until.toISOString()),
+    supabase.from("calendar_blocked_times").select("*").eq("org_id", orgId).or(`sales_rep_id.eq.${salesRepId},sales_rep_id.is.null`).lt("starts_at", until.toISOString()).gt("ends_at", now.toISOString()),
+    supabase.from("sales_reps").select("first_name, last_name").eq("org_id", orgId).eq("id", salesRepId).single(),
   ]);
   if (availabilityResult.error) throw availabilityResult.error;
   if (bookingsResult.error) throw bookingsResult.error;

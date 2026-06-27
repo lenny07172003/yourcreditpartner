@@ -6,9 +6,9 @@ export async function POST(req: NextRequest, ctx: RouteContext<"/api/public/book
   try {
     const { id } = await ctx.params;
     const body = await req.json();
-    const referralId = await verifyBookingToken(String(body.token ?? ""));
+    const { referralId, orgId } = await verifyBookingToken(String(body.token ?? ""));
     const admin = createAdminClient();
-    const { data: booking } = await admin.from("calendar_bookings").select("referral_id").eq("id", id).maybeSingle();
+    const { data: booking } = await admin.from("calendar_bookings").select("referral_id").eq("org_id", orgId).eq("id", id).maybeSingle();
     if (!booking || booking.referral_id !== referralId) return NextResponse.json({ error: "Booking not found." }, { status: 404 });
     const { error } = await admin.rpc("cancel_in_house_calendar_booking", { p_booking_id: id, p_actor: "client", p_reason: typeof body.reason === "string" ? body.reason.slice(0, 500) : null });
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });

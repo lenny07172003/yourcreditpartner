@@ -4,6 +4,7 @@ import type {
   LeaderboardMetric,
   LeaderboardPeriod,
 } from "@/lib/leaderboard/types";
+import { OCG_ORG_ID } from "@/lib/org/context";
 
 const MAX_LEADERBOARD_ROWS = 100;
 
@@ -34,11 +35,13 @@ export function getLeaderboardRank(
 
 export async function getLeaderboardRankings(
   supabase: SupabaseClient,
-  period: LeaderboardPeriod
+  period: LeaderboardPeriod,
+  orgId: string = OCG_ORG_ID
 ): Promise<LeaderboardEntry[]> {
   const { data, error } = await supabase
     .from("leaderboard_rankings")
-    .select("partner_id, display_name, show_company, company_name, period, submissions_count, closes_count, refreshed_at")
+    .select("org_id, partner_id, display_name, show_company, company_name, period, submissions_count, closes_count, refreshed_at")
+    .eq("org_id", orgId)
     .eq("period", period)
     .limit(MAX_LEADERBOARD_ROWS);
 

@@ -1,5 +1,6 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import type { RevenueWaterfall, TierInfo, Partner } from "@/types/database";
+import { OCG_ORG_ID } from "@/lib/org/context";
 
 const PROCESSING_FEE_RATE = 0.05; // 5%
 const CLOSER_SHARE_RATE = 0.15;   // 15%
@@ -74,7 +75,8 @@ export async function recalcMonthCommissions(
   partnerId: string,
   closeMonth: string,
   newRate: number,
-  overrideRate: number | null
+  overrideRate: number | null,
+  orgId: string = OCG_ORG_ID
 ): Promise<number> {
   const effectiveRate = overrideRate ?? newRate;
 
@@ -82,6 +84,7 @@ export async function recalcMonthCommissions(
   const { data: commissions, error } = await supabase
     .from("commissions")
     .select("id, net_revenue_cents")
+    .eq("org_id", orgId)
     .eq("partner_id", partnerId)
     .eq("close_month", closeMonth)
     .neq("state", "voided");
@@ -100,6 +103,7 @@ export async function recalcMonthCommissions(
         amount_cents: newAmount,
         last_recalc_at: new Date().toISOString(),
       })
+      .eq("org_id", orgId)
       .eq("id", c.id);
 
     if (updateError) throw updateError;

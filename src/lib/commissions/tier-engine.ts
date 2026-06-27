@@ -1,13 +1,15 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import type { CommissionTier, TierInfo } from "@/types/database";
+import { OCG_ORG_ID } from "@/lib/org/context";
 
 /**
  * Load active commission tiers from DB, sorted by tier_number.
  */
-export async function loadTiers(supabase: SupabaseClient): Promise<CommissionTier[]> {
+export async function loadTiers(supabase: SupabaseClient, orgId: string = OCG_ORG_ID): Promise<CommissionTier[]> {
   const { data, error } = await supabase
     .from("commission_tiers")
     .select("*")
+    .eq("org_id", orgId)
     .eq("active", true)
     .order("tier_number");
 
@@ -51,16 +53,18 @@ export function getTierForCloses(tiers: CommissionTier[], closes: number): TierI
 export async function getCloseCountForMonth(
   supabase: SupabaseClient,
   partnerId: string,
-  closeMonth: string
-): Promise<any> {
+  closeMonth: string,
+  orgId: string = OCG_ORG_ID
+): Promise<number> {
   const { count, error } = await supabase
     .from("commissions")
     .select("id", { count: "exact", head: true })
+    .eq("org_id", orgId)
     .eq("partner_id", partnerId)
     .eq("close_month", closeMonth)
     .neq("state", "voided");
 
-  if (error) return error;
+  if (error) throw error;
   return count ?? 0;
 }
 
@@ -71,11 +75,12 @@ export async function getCloseCountForMonth(
 export async function getPartnerTierForMonth(
   supabase: SupabaseClient,
   partnerId: string,
-  closeMonth: string
+  closeMonth: string,
+  orgId: string = OCG_ORG_ID
 ): Promise<{ tierInfo: TierInfo; closeCount: number }> {
   const [tiers, closeCount] = await Promise.all([
-    loadTiers(supabase),
-    getCloseCountForMonth(supabase, partnerId, closeMonth),
+    loadTiers(supabase, orgId),
+    getCloseCountForMonth(supabase, partnerId, closeMonth, orgId),
   ]);
 
   const tierInfo = getTierForCloses(tiers, closeCount);

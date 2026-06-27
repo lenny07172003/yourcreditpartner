@@ -1,5 +1,6 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import type { CommissionState } from "@/types/database";
+import { OCG_ORG_ID } from "@/lib/org/context";
 
 /**
  * Commission state machine:
@@ -35,7 +36,7 @@ export async function transitionCommission(
   commissionId: string,
   currentState: CommissionState,
   newState: CommissionState,
-  meta?: { payout_id?: string; voided_reason?: string }
+  meta?: { payout_id?: string; voided_reason?: string; org_id?: string }
 ): Promise<boolean> {
   if (!canTransition(currentState, newState)) {
     console.warn(
@@ -66,6 +67,7 @@ export async function transitionCommission(
   const { error } = await supabase
     .from("commissions")
     .update(updates)
+    .eq("org_id", meta?.org_id ?? OCG_ORG_ID)
     .eq("id", commissionId)
     .eq("state", currentState); // Optimistic lock: only update if state hasn't changed
 
@@ -86,7 +88,7 @@ export async function batchTransition(
   commissionIds: string[],
   fromState: CommissionState,
   toState: CommissionState,
-  meta?: { payout_id?: string }
+  meta?: { payout_id?: string; org_id?: string }
 ): Promise<number> {
   if (!canTransition(fromState, toState)) return 0;
 
@@ -109,6 +111,7 @@ export async function batchTransition(
   const { data, error } = await supabase
     .from("commissions")
     .update(updates)
+    .eq("org_id", meta?.org_id ?? OCG_ORG_ID)
     .in("id", commissionIds)
     .eq("state", fromState)
     .select("id");

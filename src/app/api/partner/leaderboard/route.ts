@@ -27,6 +27,7 @@ export async function PUT(req: NextRequest) {
 
   const admin = createAdminClient();
   const { error } = await admin.from("partner_leaderboard_opt_in").upsert({
+    org_id: partner.org_id,
     partner_id: partner.id,
     display_name: parsed.data.displayName,
     show_company: parsed.data.showCompany,
@@ -49,6 +50,7 @@ export async function DELETE() {
   const { error } = await admin
     .from("partner_leaderboard_opt_in")
     .delete()
+    .eq("org_id", partner.org_id)
     .eq("partner_id", partner.id);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

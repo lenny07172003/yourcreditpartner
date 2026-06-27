@@ -57,12 +57,14 @@ export async function POST(req: NextRequest) {
       gross_revenue_cents: grossRevenueCents || null,
       nurture_stage: "completed",
     })
+    .eq("org_id", referral.org_id)
     .eq("id", referral.id);
 
   // 2. Get partner and compute commission
   const { data: partner } = await admin
     .from("partners")
-    .select("id, commission_rate_override")
+    .select("id, org_id, commission_rate_override")
+    .eq("org_id", referral.org_id)
     .eq("id", referral.partner_id)
     .single();
 
@@ -74,7 +76,7 @@ export async function POST(req: NextRequest) {
   // Calculate revenue waterfall + commission
   const result = calculateFullCommission(
     grossRevenueCents,
-    (await getPartnerTierForMonth(admin, partner.id, closeMonth)).tierInfo,
+    (await getPartnerTierForMonth(admin, partner.id, closeMonth, referral.org_id)).tierInfo,
     { commission_rate_override: partner.commission_rate_override }
   );
 
@@ -86,10 +88,12 @@ export async function POST(req: NextRequest) {
       closer_share_cents: result.closer_share_cents,
       net_revenue_cents: result.net_revenue_cents,
     })
+    .eq("org_id", referral.org_id)
     .eq("id", referral.id);
 
   // 3. Create commission record
   const { data: commissionRow } = await admin.from("commissions").insert({
+    org_id: referral.org_id,
     referral_id: referral.id,
     partner_id: partner.id,
     close_month: closeMonth,
@@ -104,6 +108,7 @@ export async function POST(req: NextRequest) {
   const { data: earningPartner } = await admin
     .from("partners")
     .select("referred_by_partner_id")
+    .eq("org_id", referral.org_id)
     .eq("id", partner.id)
     .single();
 
@@ -112,6 +117,7 @@ export async function POST(req: NextRequest) {
     const { data: referringPartner } = await admin
       .from("partners")
       .select("id, status, last_submission_at")
+      .eq("org_id", referral.org_id)
       .eq("id", earningPartner.referred_by_partner_id)
       .eq("status", "active")
       .single();
@@ -121,6 +127,7 @@ export async function POST(req: NextRequest) {
       const overrideAmount = Math.round(result.commission_amount_cents * overrideRate);
 
       await admin.from("partner_referral_commissions").insert({
+        org_id: referral.org_id,
         source_commission_id: commissionRow.id,
         referring_partner_id: referringPartner.id,
         earning_partner_id: partner.id,
@@ -136,9 +143,10 @@ export async function POST(req: NextRequest) {
   }
 
   // 4. Upsert monthly stats
-  const { tierInfo, closeCount } = await getPartnerTierForMonth(admin, partner.id, closeMonth);
+  const { tierInfo, closeCount } = await getPartnerTierForMonth(admin, partner.id, closeMonth, referral.org_id);
 
   await upsertMonthlyStats(admin, {
+    org_id: referral.org_id,
     partner_id: partner.id,
     close_month: closeMonth,
     close_count: closeCount,
@@ -150,6 +158,7 @@ export async function POST(req: NextRequest) {
 
   // 5. Log event
   await logPartnerEvent(admin, {
+    org_id: referral.org_id,
     partner_id: partner.id,
     actor: "system",
     event_type: "referral_closed_won",

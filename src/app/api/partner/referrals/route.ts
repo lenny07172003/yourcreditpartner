@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getPartnerByAuthId, logPartnerEvent } from "@/lib/supabase/queries";
 import { pushReferralToGhl } from "@/lib/ghl/push-contact";
 import { sendBookingInvite } from "@/lib/calendar/notifications";
+import { getOrgIdFromUser } from "@/lib/org/context";
 
 const ReferralSchema = z.object({
   clientFirstName: z.string().min(1).max(100),
@@ -71,11 +72,13 @@ export async function POST(req: NextRequest) {
     parsed.data;
 
   const admin = createAdminClient();
+  const orgId = partner.org_id ?? getOrgIdFromUser(user);
 
   // Create referral record
   const { data: referral, error: insertError } = await admin
     .from("referrals")
     .insert({
+      org_id: orgId,
       partner_id: partner.id,
       partner_type: partner.partner_type,
       submission_path: "partner_filled",
@@ -103,6 +106,7 @@ export async function POST(req: NextRequest) {
 
   // Log event
   await logPartnerEvent(admin, {
+    org_id: orgId,
     partner_id: partner.id,
     actor: "partner",
     event_type: "referral_submitted",
@@ -128,6 +132,7 @@ export async function POST(req: NextRequest) {
 
   const bookingUrl = await sendBookingInvite({
     referralId: referral.id,
+    orgId,
     clientName: clientFirstName,
     clientEmail: clientEmail.toLowerCase(),
   }).catch((err) => {
