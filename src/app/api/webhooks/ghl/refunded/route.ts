@@ -6,6 +6,8 @@ import { transitionCommission } from "@/lib/commissions/state-machine";
 import { updateOpportunityStage } from "@/lib/ghl/client";
 import { recalcMonthCommissions } from "@/lib/commissions/calculate";
 import { getPartnerTierForMonth } from "@/lib/commissions/tier-engine";
+import { fanOutWebhooks } from "@/lib/integrations/dispatch";
+import { markWebhookEventProcessed } from "@/lib/integrations/webhook-events";
 import type { CommissionState } from "@/types/database";
 
 /**
@@ -17,7 +19,7 @@ import type { CommissionState } from "@/types/database";
  * 4. Recalculates remaining commissions for the month (tier may drop)
  */
 export async function POST(req: NextRequest) {
-  const { deny, body } = await verifyGhlSignature(req);
+  const { deny, body, webhookEventId } = await verifyGhlSignature(req);
   if (deny) return deny;
 
   const payload = body as Record<string, unknown>;
@@ -118,6 +120,15 @@ export async function POST(req: NextRequest) {
       console.error("[ghl/refunded] Failed to move opportunity:", err);
     }
   }
+
+  await fanOutWebhooks(admin, referral.org_id, "referral.refunded", {
+    referral_id: referral.id,
+    partner_id: referral.partner_id,
+    ghl_contact_id: contactId,
+    voided_commission_id: commission?.id ?? null,
+  }).catch((error) => console.error("[ghl/refunded] webhook fan-out failed:", error));
+
+  await markWebhookEventProcessed(admin, webhookEventId);
 
   console.log(`[ghl/refunded] Referral ${referral.id} refunded, commission voided`);
   return NextResponse.json({ received: true, matched: true, referralId: referral.id });

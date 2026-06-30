@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { ensureReferralAssignment, getAvailableSlots } from "@/lib/calendar/slots";
 import { verifyBookingToken } from "@/lib/calendar/token";
 import { sendBookingConfirmation } from "@/lib/calendar/notifications";
+import { fanOutWebhooks } from "@/lib/integrations/dispatch";
 
 const bookingSchema = z.object({
   token: z.string().min(1),
@@ -63,6 +64,16 @@ export async function POST(req: NextRequest) {
       timezone: parsed.data.clientTimezone,
       salesRepName: selected.salesRepName,
     }).catch((error) => console.error("[calendar/bookings] confirmation email failed", error));
+
+    await fanOutWebhooks(admin, orgId, "referral.booked", {
+      referral_id: referral.id,
+      booking_id: bookingId,
+      sales_rep_id: selected.salesRepId,
+      scheduled_for: selected.startsAt,
+      ends_at: selected.endsAt,
+      client_email: referral.client_email,
+      client_timezone: parsed.data.clientTimezone,
+    }).catch((error) => console.error("[calendar/bookings] webhook fan-out failed", error));
 
     return NextResponse.json({ bookingId, startsAt: selected.startsAt, endsAt: selected.endsAt, salesRepName: selected.salesRepName });
   } catch (error) {

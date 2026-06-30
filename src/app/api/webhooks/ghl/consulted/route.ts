@@ -3,6 +3,8 @@ import { verifyGhlSignature } from "@/lib/ghl/verifySignature";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getReferralByGhlContactId, logPartnerEvent } from "@/lib/supabase/queries";
 import { updateOpportunityStage } from "@/lib/ghl/client";
+import { fanOutWebhooks } from "@/lib/integrations/dispatch";
+import { markWebhookEventProcessed } from "@/lib/integrations/webhook-events";
 
 /**
  * GHL Webhook: consultation completed
@@ -11,7 +13,7 @@ import { updateOpportunityStage } from "@/lib/ghl/client";
  * and advances nurture stage to 'consulted_to_closed'.
  */
 export async function POST(req: NextRequest) {
-  const { deny, body } = await verifyGhlSignature(req);
+  const { deny, body, webhookEventId } = await verifyGhlSignature(req);
   if (deny) return deny;
 
   const contactId = (body as Record<string, unknown>).contactId as string
@@ -61,6 +63,15 @@ export async function POST(req: NextRequest) {
       console.error("[ghl/consulted] Failed to move opportunity:", err);
     }
   }
+
+  await fanOutWebhooks(admin, referral.org_id, "referral.consulted", {
+    referral_id: referral.id,
+    partner_id: referral.partner_id,
+    ghl_contact_id: contactId,
+    consulted_at: now,
+  }).catch((error) => console.error("[ghl/consulted] webhook fan-out failed:", error));
+
+  await markWebhookEventProcessed(admin, webhookEventId);
 
   console.log(`[ghl/consulted] Referral ${referral.id} marked as consulted`);
   return NextResponse.json({ received: true, matched: true, referralId: referral.id });

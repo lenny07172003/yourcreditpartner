@@ -9,6 +9,8 @@ import {
 import { calculateFullCommission } from "@/lib/commissions/calculate";
 import { getPartnerTierForMonth } from "@/lib/commissions/tier-engine";
 import { updateOpportunityStage } from "@/lib/ghl/client";
+import { fanOutWebhooks } from "@/lib/integrations/dispatch";
+import { markWebhookEventProcessed } from "@/lib/integrations/webhook-events";
 
 /**
  * GHL Webhook: deal closed / won
@@ -21,7 +23,7 @@ import { updateOpportunityStage } from "@/lib/ghl/client";
  * 6. Logs partner event
  */
 export async function POST(req: NextRequest) {
-  const { deny, body } = await verifyGhlSignature(req);
+  const { deny, body, webhookEventId } = await verifyGhlSignature(req);
   if (deny) return deny;
 
   const payload = body as Record<string, unknown>;
@@ -173,6 +175,19 @@ export async function POST(req: NextRequest) {
     },
   });
 
+  await fanOutWebhooks(admin, referral.org_id, "referral.closed_won", {
+    referral_id: referral.id,
+    partner_id: partner.id,
+    ghl_contact_id: contactId,
+    commission_id: commissionRow?.id ?? null,
+    close_month: closeMonth,
+    gross_revenue_cents: grossRevenueCents,
+    net_revenue_cents: result.net_revenue_cents,
+    commission_amount_cents: result.commission_amount_cents,
+    tier: tierInfo.tier,
+    rate: result.commission_rate,
+  }).catch((error) => console.error("[ghl/closed-won] webhook fan-out failed:", error));
+
   console.log(
     `[ghl/closed-won] Referral ${referral.id} closed. Commission: $${(result.commission_amount_cents / 100).toFixed(2)} at ${(result.commission_rate * 100).toFixed(0)}%`
   );
@@ -186,6 +201,8 @@ export async function POST(req: NextRequest) {
       console.error("[ghl/closed-won] Failed to move opportunity:", err);
     }
   }
+
+  await markWebhookEventProcessed(admin, webhookEventId);
 
   return NextResponse.json({
     received: true,

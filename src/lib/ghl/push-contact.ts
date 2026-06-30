@@ -22,6 +22,7 @@ export async function pushReferralToGhl(
   supabase: SupabaseClient,
   referralId: string,
   data: {
+    orgId?: string;
     clientFirstName: string;
     clientLastName: string;
     clientEmail: string;
@@ -38,6 +39,7 @@ export async function pushReferralToGhl(
   const { data: ptRow } = await supabase
     .from("partner_types")
     .select("ghl_tag")
+    .eq("org_id", data.orgId ?? "00000000-0000-4000-8000-000000000001")
     .eq("slug", data.partnerType)
     .single();
 
@@ -110,6 +112,7 @@ export async function pushReferralToGhl(
       ghl_contact_id: ghlContactId,
       ghl_opportunity_id: ghlOpportunityId,
     })
+    .eq("org_id", data.orgId ?? "00000000-0000-4000-8000-000000000001")
     .eq("id", referralId);
 
   // 5. Return contact ID + booking URL
@@ -125,6 +128,7 @@ export async function pushReferralToGhl(
 export async function pushPartnerToGhl(
   supabase: SupabaseClient,
   data: {
+    orgId?: string;
     partnerId: string;
     firstName: string;
     lastName: string;
@@ -140,6 +144,7 @@ export async function pushPartnerToGhl(
     const { data: ptRow } = await supabase
       .from("partner_types")
       .select("ghl_tag")
+      .eq("org_id", data.orgId ?? "00000000-0000-4000-8000-000000000001")
       .eq("slug", data.partnerType)
       .single();
 

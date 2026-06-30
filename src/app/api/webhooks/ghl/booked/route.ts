@@ -4,6 +4,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getReferralByGhlContactId, logPartnerEvent } from "@/lib/supabase/queries";
 import { extractAppointmentPayload } from "@/lib/ghl/extract-appointment";
 import { updateOpportunityStage } from "@/lib/ghl/client";
+import { fanOutWebhooks } from "@/lib/integrations/dispatch";
+import { markWebhookEventProcessed } from "@/lib/integrations/webhook-events";
 
 /**
  * GHL Webhook: appointment confirmed (booked)
@@ -12,7 +14,7 @@ import { updateOpportunityStage } from "@/lib/ghl/client";
  * and advances nurture stage to 'booked_to_consulted'.
  */
 export async function POST(req: NextRequest) {
-  const { deny, body } = await verifyGhlSignature(req);
+  const { deny, body, webhookEventId } = await verifyGhlSignature(req);
   if (deny) return deny;
 
   const appt = extractAppointmentPayload(body as Record<string, unknown>);
@@ -72,6 +74,17 @@ export async function POST(req: NextRequest) {
       console.error("[ghl/booked] Failed to move opportunity:", err);
     }
   }
+
+  await fanOutWebhooks(admin, referral.org_id, "referral.booked", {
+    referral_id: referral.id,
+    partner_id: referral.partner_id,
+    ghl_contact_id: contactId,
+    appointment_id: appt.appointmentId,
+    scheduled_for: appt.startTime,
+    ends_at: appt.endTime,
+  }).catch((error) => console.error("[ghl/booked] webhook fan-out failed:", error));
+
+  await markWebhookEventProcessed(admin, webhookEventId);
 
   console.log(`[ghl/booked] Referral ${referral.id} marked as booked`);
   return NextResponse.json({ received: true, matched: true, referralId: referral.id });

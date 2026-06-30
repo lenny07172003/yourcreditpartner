@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { pushPartnerToGhl } from "@/lib/ghl/push-contact";
+import { fanOutWebhooks } from "@/lib/integrations/dispatch";
+import { enqueueGhlJobIfEnabled } from "@/lib/integrations/outbox";
 import { OCG_ORG_ID } from "@/lib/org/context";
 
 const ApplySchema = z.object({
@@ -132,18 +133,30 @@ export async function POST(req: NextRequest) {
         payload: { partnerType, expectedVolume: expectedVolume ?? null },
       });
 
-      // Push partner to GHL (auto-tags with partner type + ref slug)
-      // Runs async — doesn't block the response if GHL is slow/down
-      pushPartnerToGhl(admin, {
-        partnerId: partner.id,
-        firstName,
-        lastName,
+      await fanOutWebhooks(admin, OCG_ORG_ID, "partner.created", {
+        partner_id: partner.id,
+        partner_type: partnerType,
+        partner_slug: partnerSlug,
         email: email.toLowerCase(),
-        phone,
-        partnerSlug: partnerSlug,
-        partnerType,
-        companyName: companyName ?? undefined,
-      }).catch((err) => console.error("[apply] GHL push failed:", err));
+        company_name: companyName ?? null,
+      }).catch((err) => console.error("[apply] webhook fan-out failed:", err));
+
+      await enqueueGhlJobIfEnabled(admin, {
+        orgId: OCG_ORG_ID,
+        jobType: "ghl.partner.upsert",
+        aggregateType: "partner",
+        aggregateId: partner.id,
+        payload: {
+          partnerId: partner.id,
+          firstName,
+          lastName,
+          email: email.toLowerCase(),
+          phone,
+          partnerSlug,
+          partnerType,
+          companyName: companyName ?? undefined,
+        },
+      }).catch((err) => console.error("[apply] GHL outbox enqueue failed:", err));
     }
 
     return NextResponse.json({ success: true, email });

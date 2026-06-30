@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getPartnerBySlug, logPartnerEvent } from "@/lib/supabase/queries";
-import { pushReferralToGhl } from "@/lib/ghl/push-contact";
 import { sendBookingInvite } from "@/lib/calendar/notifications";
+import { fanOutWebhooks } from "@/lib/integrations/dispatch";
+import { enqueueGhlJobIfEnabled } from "@/lib/integrations/outbox";
 import { OCG_ORG_ID } from "@/lib/org/context";
 
 const ReferralSchema = z.object({
@@ -83,23 +84,39 @@ export async function POST(req: NextRequest, { params }: Props) {
     },
   });
 
-  // Push to GHL
-  pushReferralToGhl(admin, referral.id, {
-    clientFirstName: firstName,
-    clientLastName: lastName,
-    clientEmail: email.toLowerCase(),
-    clientPhone: phone ?? undefined,
-    partnerId: partner.id,
-    partnerSlug: partner.partner_slug,
-    partnerType: partner.partner_type,
-    partnerFirstName: partner.first_name,
-    partnerLastName: partner.last_name,
-    partnerCompany: partner.company_name ?? undefined,
-  }).catch((err) => console.error("[refer] GHL push failed:", err));
+  const orgId = partner.org_id ?? OCG_ORG_ID;
+
+  await fanOutWebhooks(admin, orgId, "referral.submitted", {
+    referral_id: referral.id,
+    submission_path: "client_filled",
+    client_email: email.toLowerCase(),
+    client_state: state ?? null,
+    partner_id: partner.id,
+    partner_type: partner.partner_type,
+  }).catch((err) => console.error("[refer] webhook fan-out failed:", err));
+
+  await enqueueGhlJobIfEnabled(admin, {
+    orgId,
+    jobType: "ghl.referral.upsert",
+    aggregateType: "referral",
+    aggregateId: referral.id,
+    payload: {
+      clientFirstName: firstName,
+      clientLastName: lastName,
+      clientEmail: email.toLowerCase(),
+      clientPhone: phone ?? undefined,
+      partnerId: partner.id,
+      partnerSlug: partner.partner_slug,
+      partnerType: partner.partner_type,
+      partnerFirstName: partner.first_name,
+      partnerLastName: partner.last_name,
+      partnerCompany: partner.company_name ?? undefined,
+    },
+  }).catch((err) => console.error("[refer] GHL outbox enqueue failed:", err));
 
   const bookingUrl = await sendBookingInvite({
     referralId: referral.id,
-    orgId: partner.org_id ?? OCG_ORG_ID,
+    orgId,
     clientName: firstName,
     clientEmail: email.toLowerCase(),
   }).catch((err) => {

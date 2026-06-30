@@ -16,6 +16,7 @@ import {
   TrendingUp,
   Video,
   Trophy,
+  Webhook,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -43,6 +44,7 @@ const ADMIN_NAV: NavItem[] = [
   { href: "/admin/sales-reps", label: "Sales Reps", icon: Target },
   { href: "/admin/cashflow", label: "Cashflow", icon: TrendingUp },
   { href: "/admin/leaderboard", label: "Leaderboard", icon: Trophy },
+  { href: "/admin/integrations", label: "Integrations", icon: Webhook },
   { href: "/admin/videos", label: "Videos", icon: Video },
   { href: "/admin/settings/tiers", label: "Tier Settings", icon: Settings },
 ];

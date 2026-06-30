@@ -1,5 +1,35 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
+import { OCG_ORG_ID } from "@/lib/org/context";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { recordWebhookEvent } from "@/lib/integrations/webhook-events";
+
+type GhlWebhookVerification =
+  | { deny: NextResponse; body: null; webhookEventId: null }
+  | { deny: null; body: Record<string, unknown>; webhookEventId: string | null };
+
+function pickString(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function ghlExternalEventId(pathname: string, body: Record<string, unknown>) {
+  const direct =
+    pickString(body.id) ??
+    pickString(body.eventId) ??
+    pickString(body.event_id) ??
+    pickString(body.webhookId) ??
+    pickString(body.webhook_id);
+
+  const entityId =
+    pickString(body.contactId) ??
+    pickString(body.contact_id) ??
+    pickString(body.opportunityId) ??
+    pickString(body.opportunity_id) ??
+    pickString(body.appointmentId) ??
+    pickString(body.appointment_id);
+
+  return direct ?? (entityId ? `${pathname}:${entityId}` : null);
+}
 
 /**
  * Verifies the HMAC-SHA256 signature GHL sends on webhook requests.
@@ -13,7 +43,7 @@ import { NextRequest, NextResponse } from "next/server";
  */
 export async function verifyGhlSignature(
   req: NextRequest
-): Promise<{ deny: NextResponse; body: null } | { deny: null; body: Record<string, unknown> }> {
+): Promise<GhlWebhookVerification> {
   const secret = process.env.GHL_WEBHOOK_SECRET;
 
   if (!secret) {
@@ -21,6 +51,7 @@ export async function verifyGhlSignature(
     return {
       deny: NextResponse.json({ error: "Server misconfiguration" }, { status: 500 }),
       body: null,
+      webhookEventId: null,
     };
   }
 
@@ -56,6 +87,7 @@ export async function verifyGhlSignature(
       return {
         deny: NextResponse.json({ error: "Invalid signature" }, { status: 403 }),
         body: null,
+        webhookEventId: null,
       };
     }
   } else if (providedToken) {
@@ -70,6 +102,7 @@ export async function verifyGhlSignature(
       return {
         deny: NextResponse.json({ error: "Invalid token" }, { status: 403 }),
         body: null,
+        webhookEventId: null,
       };
     }
   } else {
@@ -78,6 +111,7 @@ export async function verifyGhlSignature(
       return {
         deny: NextResponse.json({ error: "Missing signature or token" }, { status: 403 }),
         body: null,
+        webhookEventId: null,
       };
     }
   }
@@ -89,8 +123,35 @@ export async function verifyGhlSignature(
     return {
       deny: NextResponse.json({ error: "Invalid JSON body" }, { status: 400 }),
       body: null,
+      webhookEventId: null,
     };
   }
 
-  return { deny: null, body };
+  try {
+    const eventType = req.nextUrl.pathname.split("/").filter(Boolean).slice(-1)[0] ?? "ghl.webhook";
+    const recorded = await recordWebhookEvent(createAdminClient(), {
+      orgId: OCG_ORG_ID,
+      provider: "ghl",
+      externalEventId: ghlExternalEventId(req.nextUrl.pathname, body),
+      eventType,
+      payload: body,
+    });
+
+    if (recorded.duplicate) {
+      return {
+        deny: NextResponse.json({ received: true, duplicate: true }),
+        body: null,
+        webhookEventId: null,
+      };
+    }
+
+    return { deny: null, body, webhookEventId: recorded.id };
+  } catch (error) {
+    console.error("[ghl-webhook] failed to record webhook event:", error);
+    return {
+      deny: NextResponse.json({ error: "Failed to record webhook event" }, { status: 500 }),
+      body: null,
+      webhookEventId: null,
+    };
+  }
 }
