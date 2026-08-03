@@ -13,7 +13,7 @@ const NAV_LINKS = [
   { label: "FAQ", href: "#faq" },
 ];
 
-export function SiteNav() {
+export function SiteNav({ dashboardHref }: { dashboardHref: string | null }) {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -53,19 +53,31 @@ export function SiteNav() {
 
         {/* Desktop CTAs */}
         <div className="hidden items-center gap-3 md:flex">
-          <Link
-            href="/auth/login"
-            className="px-5 py-2 text-[13px] font-medium text-ink-muted transition-all duration-300 hover:text-ink"
-          >
-            Sign In
-          </Link>
-          <Link
-            href="/apply"
-            className="rounded-full px-6 py-2.5 text-[13px] font-semibold text-white transition-all duration-300 hover:shadow-[0_0_30px_rgba(79,70,229,0.3)] hover:scale-[1.02]"
-            style={{ background: "linear-gradient(135deg, #4F46E5, #7C3AED)" }}
-          >
-            Get Started
-          </Link>
+          {dashboardHref ? (
+            <Link
+              href={dashboardHref}
+              className="rounded-full px-6 py-2.5 text-[13px] font-semibold text-white transition-all duration-300 hover:shadow-[0_0_30px_rgba(79,70,229,0.3)] hover:scale-[1.02]"
+              style={{ background: "linear-gradient(135deg, #4F46E5, #7C3AED)" }}
+            >
+              Go to Dashboard
+            </Link>
+          ) : (
+            <>
+              <Link
+                href="/auth/login"
+                className="px-5 py-2 text-[13px] font-medium text-ink-muted transition-all duration-300 hover:text-ink"
+              >
+                Sign In
+              </Link>
+              <Link
+                href="/apply"
+                className="rounded-full px-6 py-2.5 text-[13px] font-semibold text-white transition-all duration-300 hover:shadow-[0_0_30px_rgba(79,70,229,0.3)] hover:scale-[1.02]"
+                style={{ background: "linear-gradient(135deg, #4F46E5, #7C3AED)" }}
+              >
+                Get Started
+              </Link>
+            </>
+          )}
         </div>
 
         {/* Mobile toggle */}
@@ -99,21 +111,34 @@ export function SiteNav() {
             ))}
           </nav>
           <div className="mt-4 flex flex-col gap-3 border-t border-black/[0.06] pt-4">
-            <Link
-              href="/auth/login"
-              className="rounded-xl px-4 py-3 text-center text-[15px] font-medium text-ink-muted hover:bg-black/[0.03]"
-              onClick={() => setOpen(false)}
-            >
-              Sign In
-            </Link>
-            <Link
-              href="/apply"
-              className="rounded-xl py-3 text-center text-[15px] font-semibold text-white"
-              style={{ background: "linear-gradient(135deg, #4F46E5, #7C3AED)" }}
-              onClick={() => setOpen(false)}
-            >
-              Get Started
-            </Link>
+            {dashboardHref ? (
+              <Link
+                href={dashboardHref}
+                className="rounded-xl py-3 text-center text-[15px] font-semibold text-white"
+                style={{ background: "linear-gradient(135deg, #4F46E5, #7C3AED)" }}
+                onClick={() => setOpen(false)}
+              >
+                Go to Dashboard
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/auth/login"
+                  className="rounded-xl px-4 py-3 text-center text-[15px] font-medium text-ink-muted hover:bg-black/[0.03]"
+                  onClick={() => setOpen(false)}
+                >
+                  Sign In
+                </Link>
+                <Link
+                  href="/apply"
+                  className="rounded-xl py-3 text-center text-[15px] font-semibold text-white"
+                  style={{ background: "linear-gradient(135deg, #4F46E5, #7C3AED)" }}
+                  onClick={() => setOpen(false)}
+                >
+                  Get Started
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </div>

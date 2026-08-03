@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getPartnerByAuthId } from "@/lib/supabase/queries";
 import { redirect } from "next/navigation";
 import { SidebarNav, MobileNav } from "@/components/dashboard/SidebarNav";
+import { LogoutButton } from "@/components/dashboard/LogoutButton";
 
 export default async function PartnerLayout({
   children,
@@ -21,10 +22,10 @@ export default async function PartnerLayout({
   if (!partner) redirect("/auth/login");
 
   return (
-    <div className="flex min-h-screen bg-surface-soft">
+    <div className="flex h-screen overflow-hidden bg-surface-soft">
       {/* Sidebar */}
-      <aside className="hidden w-64 flex-col border-r border-line bg-surface lg:flex">
-        <div className="flex h-16 items-center border-b border-line px-6">
+      <aside className="hidden w-64 shrink-0 flex-col overflow-y-auto border-r border-line bg-surface lg:flex">
+        <div className="flex h-16 shrink-0 items-center border-b border-line px-6">
           <Link href="/dashboard">
             <Image src="/logo.png" alt="YourCreditPartner" width={160} height={40} className="h-8 w-auto" />
           </Link>
@@ -40,12 +41,13 @@ export default async function PartnerLayout({
             </p>
             <p className="truncate text-xs text-ink-muted">{partner.email}</p>
           </div>
+          <LogoutButton />
         </div>
       </aside>
 
       {/* Mobile header */}
-      <div className="flex flex-1 flex-col">
-        <header className="flex h-16 items-center justify-between border-b border-line bg-surface px-4 lg:hidden">
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <header className="flex h-16 shrink-0 items-center justify-between border-b border-line bg-surface px-4 lg:hidden">
           <Link href="/dashboard">
             <Image src="/logo.png" alt="YourCreditPartner" width={160} height={40} className="h-8 w-auto" />
           </Link>
@@ -56,7 +58,7 @@ export default async function PartnerLayout({
         <MobileNav variant="partner" />
 
         {/* Page content */}
-        <main className="flex-1 p-4 lg:p-8">{children}</main>
+        <main className="flex-1 overflow-y-auto p-4 lg:p-8">{children}</main>
       </div>
     </div>
   );

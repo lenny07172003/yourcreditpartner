@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { OCG_ORG_ID } from "@/lib/org/context";
 
@@ -13,7 +12,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(new URL("/auth/login?error=missing_code", req.url));
   }
 
-  const cookieStore = await cookies();
+  // Collected here instead of writing through next/headers' cookies(),
+  // then attached directly to whichever NextResponse we end up returning —
+  // cookies set via cookies().set() are not reliably carried over when a
+  // fresh NextResponse.redirect() is constructed afterward.
+  const pendingCookies: { name: string; value: string; options: CookieOptions }[] = [];
 
   // User client — only used to exchange the code for a session
   const supabase = createServerClient(
@@ -22,22 +25,28 @@ export async function GET(req: NextRequest) {
     {
       cookies: {
         getAll() {
-          return cookieStore.getAll();
+          return req.cookies.getAll();
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            cookieStore.set(name, value, options);
-          });
+          pendingCookies.push(...cookiesToSet);
         },
       },
     }
   );
 
+  function redirect(url: string | URL) {
+    const res = NextResponse.redirect(url instanceof URL ? url : new URL(url, req.url));
+    pendingCookies.forEach(({ name, value, options }) => {
+      res.cookies.set(name, value, options);
+    });
+    return res;
+  }
+
   const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error || !data.session) {
     console.error("[callback] exchange error:", error);
-    return NextResponse.redirect(new URL("/auth/login?error=invalid_link", req.url));
+    return redirect("/auth/login?error=invalid_link");
   }
 
   const { user } = data.session;
@@ -76,7 +85,7 @@ export async function GET(req: NextRequest) {
   }
 
   if (adminUser && !partner) {
-    return NextResponse.redirect(new URL("/admin", req.url));
+    return redirect("/admin");
   }
 
   // Determine where to send the partner after password setup
@@ -93,8 +102,8 @@ export async function GET(req: NextRequest) {
   if (partner && isFirstLogin) {
     const pwUrl = new URL("/auth/set-password", req.url);
     pwUrl.searchParams.set("next", afterPassword);
-    return NextResponse.redirect(pwUrl);
+    return redirect(pwUrl);
   }
 
-  return NextResponse.redirect(new URL(afterPassword, req.url));
+  return redirect(afterPassword);
 }
