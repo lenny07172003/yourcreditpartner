@@ -35,7 +35,7 @@ export function SiteNav({ dashboardHref }: { dashboardHref: string | null }) {
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 lg:px-8 h-20">
         {/* Logo */}
         <Link href="/" className="flex items-center">
-          <Image src="/logo.png" alt="YourCreditPartner" width={600} height={150} className="h-32 w-auto -my-10" priority />
+          <Image src="/logo.png" alt="YourCreditPartner" width={600} height={150} className="h-12 w-auto" priority />
         </Link>
 
         {/* Desktop nav */}

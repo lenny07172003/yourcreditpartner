@@ -91,7 +91,7 @@ export function ReferralPipeline({
       )}
 
       {/* Stage cards with arrows */}
-      <div className="flex items-stretch gap-1 overflow-x-auto">
+      <div className="flex flex-wrap items-stretch gap-1">
         {STAGES.map((s, i) => {
           const Icon = s.icon;
           const count = counts[s.key];
