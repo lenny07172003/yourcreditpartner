@@ -5,6 +5,7 @@ import { ensureReferralAssignment, getAvailableSlots } from "@/lib/calendar/slot
 import { verifyBookingToken } from "@/lib/calendar/token";
 import { sendBookingConfirmation } from "@/lib/calendar/notifications";
 import { fanOutWebhooks } from "@/lib/integrations/dispatch";
+import { rateLimitOrDeny } from "@/lib/rate-limit";
 
 const bookingSchema = z.object({
   token: z.string().min(1),
@@ -13,6 +14,9 @@ const bookingSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  const limited = await rateLimitOrDeny(req, "public-bookings", { windowSeconds: 300, max: 10 });
+  if (limited) return limited;
+
   const parsed = bookingSchema.safeParse(await req.json());
   if (!parsed.success) return NextResponse.json({ error: "Please select a valid appointment time." }, { status: 400 });
 

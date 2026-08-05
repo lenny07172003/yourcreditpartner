@@ -5,6 +5,8 @@ export const INTEGRATION_EVENT_TYPES = [
   "referral.consulted",
   "referral.closed_won",
   "referral.refunded",
+  "commission.tier_advanced",
+  "payout.paid",
   "sms.inbound_received",
 ] as const;
 

@@ -6,8 +6,8 @@ import {
   logPartnerEvent,
   upsertMonthlyStats,
 } from "@/lib/supabase/queries";
-import { calculateFullCommission } from "@/lib/commissions/calculate";
-import { getPartnerTierForMonth } from "@/lib/commissions/tier-engine";
+import { calculateFullCommission, recalcMonthCommissions } from "@/lib/commissions/calculate";
+import { loadTiers, getTierForCloses, getCloseCountForMonth } from "@/lib/commissions/tier-engine";
 import { updateOpportunityStage } from "@/lib/ghl/client";
 import { fanOutWebhooks } from "@/lib/integrations/dispatch";
 import { markWebhookEventProcessed } from "@/lib/integrations/webhook-events";
@@ -75,12 +75,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ received: true, matched: true, error: "partner_not_found" });
   }
 
-  // Calculate revenue waterfall + commission
-  const result = calculateFullCommission(
-    grossRevenueCents,
-    (await getPartnerTierForMonth(admin, partner.id, closeMonth, referral.org_id)).tierInfo,
-    { commission_rate_override: partner.commission_rate_override }
-  );
+  // Tier is based on this close's position in the month — count existing
+  // closes BEFORE this one to detect a threshold crossing (retroactive recalc).
+  const tiers = await loadTiers(admin, referral.org_id);
+  const closesBeforeThis = await getCloseCountForMonth(admin, partner.id, closeMonth, referral.org_id);
+  const priorTierInfo = getTierForCloses(tiers, closesBeforeThis);
+  const newTierInfo = getTierForCloses(tiers, closesBeforeThis + 1);
+
+  // Calculate revenue waterfall + commission at the tier this close lands in
+  const result = calculateFullCommission(grossRevenueCents, newTierInfo, {
+    commission_rate_override: partner.commission_rate_override,
+  });
 
   // Update referral with waterfall amounts
   await admin
@@ -145,7 +150,8 @@ export async function POST(req: NextRequest) {
   }
 
   // 4. Upsert monthly stats
-  const { tierInfo, closeCount } = await getPartnerTierForMonth(admin, partner.id, closeMonth, referral.org_id);
+  const closeCount = closesBeforeThis + 1;
+  const tierInfo = newTierInfo;
 
   await upsertMonthlyStats(admin, {
     org_id: referral.org_id,
@@ -157,6 +163,29 @@ export async function POST(req: NextRequest) {
     current_rate: partner.commission_rate_override ?? tierInfo.rate,
     projected_earnings_cents: result.commission_amount_cents,
   });
+
+  // 4b. Retroactive recalc — if this close pushed the partner into a new
+  // tier, every pending commission this month (including ones already
+  // inserted) bumps to the new rate immediately, not at month-end.
+  if (newTierInfo.tier !== priorTierInfo.tier && closesBeforeThis > 0) {
+    const recalculatedCount = await recalcMonthCommissions(
+      admin,
+      partner.id,
+      closeMonth,
+      newTierInfo.rate,
+      partner.commission_rate_override,
+      referral.org_id
+    );
+
+    await fanOutWebhooks(admin, referral.org_id, "commission.tier_advanced", {
+      partner_id: partner.id,
+      close_month: closeMonth,
+      from_tier: priorTierInfo.tier,
+      to_tier: newTierInfo.tier,
+      new_rate: newTierInfo.rate,
+      recalculated_commissions: recalculatedCount,
+    }).catch((error) => console.error("[ghl/closed-won] tier_advanced fan-out failed:", error));
+  }
 
   // 5. Log event
   await logPartnerEvent(admin, {

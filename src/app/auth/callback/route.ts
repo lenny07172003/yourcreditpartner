@@ -55,10 +55,12 @@ export async function GET(req: NextRequest) {
   // at first login and the RLS policy blocks the user client from seeing the row
   const admin = createAdminClient();
 
+  // Resolve org_id from whichever role table this email belongs to —
+  // not scoped to OCG, since other tenants' partners/admins log in through
+  // this same callback.
   const { data: partner } = await admin
     .from("partners")
     .select("id, org_id, auth_user_id, fast_start_completed_at, fast_start_skipped_at")
-    .eq("org_id", OCG_ORG_ID)
     .eq("email", user.email!.toLowerCase())
     .maybeSingle();
 
@@ -73,7 +75,6 @@ export async function GET(req: NextRequest) {
   const { data: adminUser } = await admin
     .from("admin_users")
     .select("id, org_id, role")
-    .eq("org_id", partner?.org_id ?? OCG_ORG_ID)
     .eq("email", user.email!.toLowerCase())
     .maybeSingle();
 

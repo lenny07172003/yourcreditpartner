@@ -6,6 +6,7 @@ import { sendBookingInvite } from "@/lib/calendar/notifications";
 import { fanOutWebhooks } from "@/lib/integrations/dispatch";
 import { enqueueGhlJobIfEnabled } from "@/lib/integrations/outbox";
 import { OCG_ORG_ID } from "@/lib/org/context";
+import { rateLimitOrDeny } from "@/lib/rate-limit";
 
 const ReferralSchema = z.object({
   firstName: z.string().min(1).max(100),
@@ -21,6 +22,9 @@ interface Props {
 }
 
 export async function POST(req: NextRequest, { params }: Props) {
+  const limited = await rateLimitOrDeny(req, "public-refer", { windowSeconds: 3600, max: 10 });
+  if (limited) return limited;
+
   const { slug } = await params;
   const admin = createAdminClient();
 

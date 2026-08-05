@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { fanOutWebhooks } from "@/lib/integrations/dispatch";
 import { enqueueGhlJobIfEnabled } from "@/lib/integrations/outbox";
 import { OCG_ORG_ID } from "@/lib/org/context";
+import { rateLimitOrDeny } from "@/lib/rate-limit";
 
 const ApplySchema = z.object({
   partnerType: z.string().min(1),
@@ -28,6 +29,9 @@ function generateSlug(firstName: string, lastName: string): string {
 }
 
 export async function POST(req: NextRequest) {
+  const limited = await rateLimitOrDeny(req, "public-apply", { windowSeconds: 3600, max: 5 });
+  if (limited) return limited;
+
   try {
     const body = await req.json();
     const parsed = ApplySchema.safeParse(body);

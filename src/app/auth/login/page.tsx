@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getPartnerByAuthId } from "@/lib/supabase/queries";
-import { OCG_ORG_ID } from "@/lib/org/context";
 import { LoginForm } from "./LoginForm";
 
 export default async function LoginPage() {
@@ -12,7 +11,7 @@ export default async function LoginPage() {
   } = await supabase.auth.getUser();
 
   if (user) {
-    const partner = await getPartnerByAuthId(supabase, user.id, OCG_ORG_ID);
+    const partner = await getPartnerByAuthId(supabase, user.id);
     if (partner) redirect("/dashboard");
 
     const admin = createAdminClient();
