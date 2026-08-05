@@ -34,7 +34,7 @@ export default async function AdminLayout({
       <aside className="hidden w-64 shrink-0 flex-col overflow-y-auto border-r border-line bg-surface lg:flex">
         <div className="flex h-16 shrink-0 items-center border-b border-line px-6">
           <Link href="/admin">
-            <Image src="/logo.png" alt="YourCreditPartner" width={160} height={40} className="h-8 w-auto" />
+            <Image src="/logo.png" alt="YourCreditPartner" width={160} height={40} className="h-10 w-auto" />
           </Link>
         </div>
 
@@ -62,7 +62,7 @@ export default async function AdminLayout({
       <div className="flex flex-1 flex-col overflow-hidden">
         <header className="flex h-16 shrink-0 items-center justify-between border-b border-line bg-surface px-4 lg:hidden">
           <Link href="/admin">
-            <Image src="/logo.png" alt="YourCreditPartner" width={160} height={40} className="h-8 w-auto" />
+            <Image src="/logo.png" alt="YourCreditPartner" width={160} height={40} className="h-10 w-auto" />
           </Link>
         </header>
 

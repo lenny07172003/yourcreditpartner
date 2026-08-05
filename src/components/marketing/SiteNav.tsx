@@ -24,18 +24,19 @@ export function SiteNav({ dashboardHref }: { dashboardHref: string | null }) {
   }, []);
 
   return (
-    <header
-      className={cn(
-        "fixed top-0 left-0 right-0 z-50 transition-all duration-500",
-        scrolled
-          ? "bg-white/80 backdrop-blur-2xl border-b border-black/[0.04] shadow-[0_1px_30px_rgba(0,0,0,0.04)]"
-          : "bg-transparent"
-      )}
-    >
+    <header className="fixed top-4 left-4 right-4 z-50 transition-all duration-500">
+      <div
+        className={cn(
+          "mx-auto max-w-7xl overflow-hidden rounded-2xl transition-all duration-500",
+          scrolled
+            ? "bg-white/80 backdrop-blur-2xl border border-black/[0.04] shadow-[0_1px_30px_rgba(0,0,0,0.08)]"
+            : "bg-transparent border border-transparent"
+        )}
+      >
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 lg:px-8 h-20">
         {/* Logo */}
         <Link href="/" className="flex items-center">
-          <Image src="/logo.png" alt="YourCreditPartner" width={600} height={150} className="h-12 w-auto" priority />
+          <Image src="/logo.png" alt="YourCreditPartner" width={1300} height={300} className="h-14 w-auto" priority />
         </Link>
 
         {/* Desktop nav */}
@@ -141,6 +142,7 @@ export function SiteNav({ dashboardHref }: { dashboardHref: string | null }) {
             )}
           </div>
         </div>
+      </div>
       </div>
     </header>
   );
