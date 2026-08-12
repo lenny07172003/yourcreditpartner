@@ -27,7 +27,7 @@ export default async function PartnerLayout({
       <aside className="hidden w-64 shrink-0 flex-col overflow-y-auto border-r border-line bg-surface lg:flex">
         <div className="flex h-16 shrink-0 items-center border-b border-line px-6">
           <Link href="/dashboard">
-            <Image src="/logo.png" alt="YourCreditPartner" width={160} height={40} className="h-8 w-auto" />
+            <Image src="/logo.png" alt="YourCreditPartner" width={1300} height={300} className="h-12 w-auto" />
           </Link>
         </div>
 
@@ -49,7 +49,7 @@ export default async function PartnerLayout({
       <div className="flex flex-1 flex-col overflow-hidden">
         <header className="flex h-16 shrink-0 items-center justify-between border-b border-line bg-surface px-4 lg:hidden">
           <Link href="/dashboard">
-            <Image src="/logo.png" alt="YourCreditPartner" width={160} height={40} className="h-8 w-auto" />
+            <Image src="/logo.png" alt="YourCreditPartner" width={160} height={40} className="h-10 w-auto" />
           </Link>
           <p className="text-sm text-ink-muted">{partner.first_name}</p>
         </header>
