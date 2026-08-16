@@ -17,6 +17,7 @@ import {
   Video,
   Trophy,
   Webhook,
+  Building2,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -36,6 +37,10 @@ const PARTNER_NAV: NavItem[] = [
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ];
 
+const SUPER_ADMIN_NAV: NavItem[] = [
+  { href: "/admin/companies", label: "Companies", icon: Building2 },
+];
+
 const ADMIN_NAV: NavItem[] = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/partners", label: "Partners", icon: Users },
@@ -49,9 +54,16 @@ const ADMIN_NAV: NavItem[] = [
   { href: "/admin/settings/tiers", label: "Tier Settings", icon: Settings },
 ];
 
-export function SidebarNav({ variant }: { variant: "partner" | "admin" }) {
+export function SidebarNav({
+  variant,
+  isPlatformAdmin = false,
+}: {
+  variant: "partner" | "admin";
+  isPlatformAdmin?: boolean;
+}) {
   const pathname = usePathname();
-  const items = variant === "admin" ? ADMIN_NAV : PARTNER_NAV;
+  const items =
+    variant === "admin" ? (isPlatformAdmin ? [...ADMIN_NAV, ...SUPER_ADMIN_NAV] : ADMIN_NAV) : PARTNER_NAV;
 
   return (
     <nav className="flex-1 space-y-1 px-3 py-4">
@@ -83,9 +95,16 @@ export function SidebarNav({ variant }: { variant: "partner" | "admin" }) {
   );
 }
 
-export function MobileNav({ variant }: { variant: "partner" | "admin" }) {
+export function MobileNav({
+  variant,
+  isPlatformAdmin = false,
+}: {
+  variant: "partner" | "admin";
+  isPlatformAdmin?: boolean;
+}) {
   const pathname = usePathname();
-  const items = variant === "admin" ? ADMIN_NAV : PARTNER_NAV;
+  const items =
+    variant === "admin" ? (isPlatformAdmin ? [...ADMIN_NAV, ...SUPER_ADMIN_NAV] : ADMIN_NAV) : PARTNER_NAV;
 
   return (
     <nav className="flex gap-1 overflow-x-auto border-b border-line bg-surface px-2 py-2 lg:hidden">

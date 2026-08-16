@@ -1,22 +1,46 @@
+import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getOrgIdFromUser } from "@/lib/org/context";
 import type { Partner } from "@/types/database";
 import { PartnersTable } from "./partners-table";
+import { AddPartnerForm } from "./AddPartnerForm";
 
 export default async function AdminPartnersPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const orgId = getOrgIdFromUser(user);
+
   const admin = createAdminClient();
+
+  const { data: org } = await admin
+    .from("orgs")
+    .select("included_partner_slots, purchased_additional_slots")
+    .eq("id", orgId)
+    .single();
+
+  const { data: partnerTypes } = await admin
+    .from("partner_types")
+    .select("slug, display_name")
+    .order("sort_order");
 
   const { data: partnersData } = await admin
     .from("partners")
     .select("*")
+    .eq("org_id", orgId)
     .is("deleted_at", null)
     .order("created_at", { ascending: false });
 
   const partners = (partnersData ?? []) as Partner[];
+  const activePartnerCount = partners.filter((p) => p.status !== "terminated").length;
+  const seatLimit = (org?.included_partner_slots ?? 4) + (org?.purchased_additional_slots ?? 0);
 
   // Get referral pipeline counts per partner
   const { data: referralsData } = await admin
     .from("referrals")
-    .select("partner_id, stage");
+    .select("partner_id, stage")
+    .eq("org_id", orgId);
 
   const referrals = referralsData ?? [];
 
@@ -35,6 +59,7 @@ export default async function AdminPartnersPage() {
   const { data: commissionsData } = await admin
     .from("commissions")
     .select("partner_id, amount_cents")
+    .eq("org_id", orgId)
     .neq("state", "voided");
 
   const commMap: Record<string, number> = {};
@@ -61,9 +86,10 @@ export default async function AdminPartnersPage() {
         <div>
           <h1 className="text-xl font-bold text-ink">Partners</h1>
           <p className="mt-1 text-sm text-ink-muted">
-            {partners.length} total partner{partners.length !== 1 ? "s" : ""}
+            {partners.length} total partner{partners.length !== 1 ? "s" : ""} &middot; {activePartnerCount} / {seatLimit} seats used
           </p>
         </div>
+        <AddPartnerForm partnerTypes={partnerTypes ?? []} seatsUsed={activePartnerCount} seatLimit={seatLimit} />
       </div>
 
       <PartnersTable data={tableData} />

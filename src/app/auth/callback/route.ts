@@ -60,7 +60,7 @@ export async function GET(req: NextRequest) {
   // this same callback.
   const { data: partner } = await admin
     .from("partners")
-    .select("id, org_id, auth_user_id, fast_start_completed_at, fast_start_skipped_at")
+    .select("id, org_id, auth_user_id, fast_start_completed_at, fast_start_skipped_at, agreement_signed_at")
     .eq("email", user.email!.toLowerCase())
     .maybeSingle();
 
@@ -78,6 +78,13 @@ export async function GET(req: NextRequest) {
     .eq("email", user.email!.toLowerCase())
     .maybeSingle();
 
+  // Or a platform-level (Super Admin) user, not tied to any single org
+  const { data: platformAdmin } = await admin
+    .from("platform_admins")
+    .select("id")
+    .eq("email", user.email!.toLowerCase())
+    .maybeSingle();
+
   const orgId = partner?.org_id ?? adminUser?.org_id ?? OCG_ORG_ID;
   if (user.app_metadata?.org_id !== orgId) {
     await admin.auth.admin.updateUserById(user.id, {
@@ -85,8 +92,17 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  if (adminUser && !partner) {
+  if ((adminUser || platformAdmin) && !partner) {
     return redirect("/admin");
+  }
+
+  // Admin-invited partners haven't signed the affiliate agreement yet
+  // (self-serve /apply captures it before the partner row even exists) —
+  // send them there first, before password setup or Fast Start.
+  if (partner && !partner.agreement_signed_at) {
+    const agreementUrl = new URL("/onboarding/agreement", req.url);
+    agreementUrl.searchParams.set("next", next);
+    return redirect(agreementUrl);
   }
 
   // Determine where to send the partner after password setup

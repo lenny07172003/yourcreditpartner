@@ -21,6 +21,13 @@ export default async function LoginPage() {
       .eq("email", user.email!.toLowerCase())
       .maybeSingle();
     if (adminUser) redirect("/admin");
+
+    const { data: platformAdmin } = await admin
+      .from("platform_admins")
+      .select("id")
+      .eq("email", user.email!.toLowerCase())
+      .maybeSingle();
+    if (platformAdmin) redirect("/admin");
   }
 
   return <LoginForm />;

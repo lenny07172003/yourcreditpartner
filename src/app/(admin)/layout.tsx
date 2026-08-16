@@ -18,7 +18,7 @@ export default async function AdminLayout({
 
   if (!user) redirect("/auth/login");
 
-  // Verify admin role
+  // Verify admin role — either a per-org admin, or a platform-level Super Admin
   const admin = createAdminClient();
   const { data: adminUser } = await admin
     .from("admin_users")
@@ -26,7 +26,15 @@ export default async function AdminLayout({
     .eq("email", user.email!.toLowerCase())
     .maybeSingle();
 
-  if (!adminUser) redirect("/dashboard");
+  const { data: platformAdmin } = await admin
+    .from("platform_admins")
+    .select("id")
+    .eq("email", user.email!.toLowerCase())
+    .maybeSingle();
+
+  if (!adminUser && !platformAdmin) redirect("/dashboard");
+
+  const isPlatformAdmin = !!platformAdmin;
 
   return (
     <div className="flex h-screen overflow-hidden bg-surface-soft">
@@ -38,15 +46,15 @@ export default async function AdminLayout({
           </Link>
         </div>
 
-        <SidebarNav variant="admin" />
+        <SidebarNav variant="admin" isPlatformAdmin={isPlatformAdmin} />
 
         <div className="border-t border-line p-4">
           <div className="rounded-lg bg-surface-raised p-3">
-            <p className="text-xs font-medium text-ink-muted">Admin</p>
+            <p className="text-xs font-medium text-ink-muted">{isPlatformAdmin ? "Super Admin" : "Admin"}</p>
             <p className="mt-0.5 truncate text-sm font-semibold text-ink">
               {user.email}
             </p>
-            <p className="text-xs text-ink-muted capitalize">{adminUser.role}</p>
+            <p className="text-xs text-ink-muted capitalize">{adminUser?.role ?? "super admin"}</p>
           </div>
           <Link
             href="/dashboard"
@@ -66,7 +74,7 @@ export default async function AdminLayout({
           </Link>
         </header>
 
-        <MobileNav variant="admin" />
+        <MobileNav variant="admin" isPlatformAdmin={isPlatformAdmin} />
 
         <main className="flex-1 overflow-y-auto p-4 lg:p-8">{children}</main>
       </div>

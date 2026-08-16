@@ -39,7 +39,9 @@ export async function proxy(req: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Extra guard for /admin routes: verify the user is in admin_users
+  // Extra guard for /admin routes: verify the user is in admin_users OR
+  // platform_admins (Super Admins operate the /admin dashboard too, scoped
+  // to OCG's own org data).
   if (pathname.startsWith("/admin")) {
     const adminClient = createSupabaseAdminClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -54,7 +56,15 @@ export async function proxy(req: NextRequest) {
       .maybeSingle();
 
     if (!adminUser) {
-      return NextResponse.redirect(new URL("/dashboard", req.url));
+      const { data: platformAdmin } = await adminClient
+        .from("platform_admins")
+        .select("id")
+        .eq("email", user.email!.toLowerCase())
+        .maybeSingle();
+
+      if (!platformAdmin) {
+        return NextResponse.redirect(new URL("/dashboard", req.url));
+      }
     }
   }
 
